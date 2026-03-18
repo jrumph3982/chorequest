@@ -1,0 +1,785 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum Role {
+  adult
+  child
+}
+
+enum ScheduleType {
+  daily
+  weekly
+  specific_days
+  monthly
+  once
+}
+
+enum ChoreInstanceStatus {
+  available
+  submitted_complete
+  approved
+  rejected
+  missed
+  expired
+}
+
+enum BonusRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+enum StoryProgressStatus {
+  locked
+  unlocked
+  completed
+}
+
+enum ItemType {
+  weapon
+  tool
+  cosmetic
+  companion
+  base_upgrade
+}
+
+enum ItemRarity {
+  common
+  rare
+  epic
+  legendary
+}
+
+enum CosmeticSlot {
+  head
+  top
+  bottom
+  shoes
+  accessory
+  backpack
+  handheld
+}
+
+enum HouseholdRole {
+  owner
+  parent
+  child
+}
+
+// ─── Household ────────────────────────────────────────────────────────────────
+
+model Household {
+  id            String   @id @default(cuid())
+  displayName   String
+  householdCode String   @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  onboardingComplete Boolean @default(false)
+  onboardingStep     Int     @default(0)
+
+  members           HouseholdMember[]
+  chores            Chore[]
+  choreAssignments  ChoreAssignment[]
+  choreInstances    ChoreInstance[]
+  bonusRequests     BonusRequest[]
+  weeklyLedgers     WeeklyLedger[]
+  childProfiles     ChildProfile[]
+  baseStates        BaseState[]
+  dailyBaseDamages  DailyBaseDamage[]
+  userInventories   UserInventory[]
+  userCompanions    UserCompanion[]
+  userAchievements  UserAchievement[]
+  userStoryProgress UserStoryProgress[]
+  survivalSettings  SurvivalSettings[]
+  securityAuditLogs SecurityAuditLog[]
+  allowanceRecords  AllowanceRecord[]
+  choreTemplates    ChoreTemplate[]
+  allowancePayouts  AllowancePayout[]
+  challenges        Challenge[]
+}
+
+model HouseholdMember {
+  id          String        @id @default(cuid())
+  householdId String
+  userId      String
+  role        HouseholdRole
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  household Household @relation(fields: [householdId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([householdId, userId])
+  @@index([householdId])
+  @@index([userId])
+}
+
+// ─── Core Models ─────────────────────────────────────────────────────────────
+
+model User {
+  id                    String   @id @default(cuid())
+  name                  String
+  username              String?  @unique
+  passwordHash          String?
+  pinHash               String?
+  role                  Role
+  avatarUrl             String?
+  level                 Int      @default(1)
+  xp                    Int      @default(0)
+  allowanceBalanceCents Int      @default(0)
+  gameCurrencyBalance   Int      @default(0)
+  lastLoginAt           DateTime?
+  email                 String?  @unique
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  // Relations
+  childProfile          ChildProfile?
+  choresCreated         Chore[]              @relation("ChoreCreator")
+  choreAssignments      ChoreAssignment[]    @relation("AssignedChild")
+  choreInstances        ChoreInstance[]      @relation("ChildInstances")
+  reviewedInstances     ChoreInstance[]      @relation("ReviewerInstances")
+  bonusRequests         BonusRequest[]       @relation("ChildBonusRequests")
+  reviewedBonusRequests BonusRequest[]       @relation("ReviewerBonusRequests")
+  weeklyLedgers         WeeklyLedger[]       @relation("ChildLedgers")
+  approvedLedgers       WeeklyLedger[]       @relation("ApproverLedgers")
+  userInventory         UserInventory[]
+  storyProgress         UserStoryProgress[]
+  auditLogs             AuditLog[]           @relation("ActorLogs")
+  securityActorLogs     SecurityAuditLog[]   @relation("SecurityActorLogs")
+  securityTargetLogs    SecurityAuditLog[]   @relation("SecurityTargetLogs")
+  baseState             BaseState?
+  dailyBaseDamages      DailyBaseDamage[]
+  userCompanions        UserCompanion[]
+  userAchievements      UserAchievement[]
+  householdMembers      HouseholdMember[]
+  allowanceRecords      AllowanceRecord[]
+  allowancePayoutsAsChild  AllowancePayout[] @relation("PayoutChild")
+  allowancePayoutsAsPayer  AllowancePayout[] @relation("PayoutPayer")
+  challengeParticipations  ChallengeParticipant[]
+  passwordResetTokens   PasswordResetToken[]
+}
+
+model ChildProfile {
+  id                  String  @id @default(cuid())
+  userId              String  @unique
+  themeId             String?
+  householdId         String?
+  currentStoryChapter Int     @default(0)
+  weeklyPointGoal     Int     @default(50)
+  streakCount         Int     @default(0)
+  companionName       String?
+
+  // Character appearance — used by the avatar customisation UI
+  hairStyle   String?
+  hairColor   String?
+  skinTone    String?
+  eyeColor    String?
+  gender      String?
+  // Extended avatar fields (outfit, face details, gear, signature)
+  eyeStyle    String?
+  freckles    Boolean @default(false)
+  jacketColor String?
+  pantsColor  String?
+  goggleColor String?
+  sigItem     String?
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme     Theme?     @relation(fields: [themeId], references: [id])
+  household Household? @relation(fields: [householdId], references: [id])
+
+  @@index([householdId])
+}
+
+// ─── Chore Models ─────────────────────────────────────────────────────────────
+
+model Chore {
+  id                     String       @id @default(cuid())
+  title                  String
+  description            String?
+  category               String
+  scheduleType           ScheduleType
+  difficultyScore        Int          @default(1)
+  basePoints             Int
+  cashValueCentsOverride Int?
+  requiresApproval       Boolean      @default(true)
+  scheduleDays           Int[]        @default([])
+  timeWindow             String       @default("any")
+  rolloverEnabled        Boolean      @default(true)
+  rolloverGraceDays      Int          @default(0)
+  active                 Boolean      @default(true)
+  createdByUserId        String
+  householdId            String?
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  createdBy   User              @relation("ChoreCreator", fields: [createdByUserId], references: [id])
+  household   Household?        @relation(fields: [householdId], references: [id])
+  assignments ChoreAssignment[]
+
+  @@index([active, scheduleType])
+  @@index([householdId])
+}
+
+model ChoreAssignment {
+  id             String    @id @default(cuid())
+  choreId        String
+  childUserId    String
+  householdId    String?
+  startDate      DateTime
+  endDate        DateTime?
+  recurrenceRule String?
+  active         Boolean   @default(true)
+
+  chore     Chore           @relation(fields: [choreId], references: [id])
+  child     User            @relation("AssignedChild", fields: [childUserId], references: [id])
+  household Household?      @relation(fields: [householdId], references: [id])
+  instances ChoreInstance[]
+
+  @@index([choreId, childUserId])
+  @@index([childUserId, active])
+  @@index([householdId])
+}
+
+model ChoreInstance {
+  id                String              @id @default(cuid())
+  choreAssignmentId String
+  childUserId       String
+  householdId       String?
+  dueDate           DateTime
+  status            ChoreInstanceStatus @default(available)
+  submittedAt       DateTime?
+  reviewedAt        DateTime?
+  reviewedByUserId  String?
+  pointsAwarded     Int?
+  notes             String?
+  proofImageUrl     String?
+
+  assignment ChoreAssignment @relation(fields: [choreAssignmentId], references: [id])
+  child      User            @relation("ChildInstances", fields: [childUserId], references: [id])
+  reviewedBy User?           @relation("ReviewerInstances", fields: [reviewedByUserId], references: [id])
+  household  Household?      @relation(fields: [householdId], references: [id])
+
+  @@index([childUserId, dueDate])
+  @@index([status])
+  @@index([childUserId, status])
+  @@index([householdId])
+}
+
+// ─── Bonus Requests ───────────────────────────────────────────────────────────
+
+model BonusRequest {
+  id               String             @id @default(cuid())
+  childUserId      String
+  householdId      String?
+  description      String
+  requestedPoints  Int?
+  status           BonusRequestStatus @default(pending)
+  approvedPoints   Int?
+  submittedAt      DateTime           @default(now())
+  reviewedAt       DateTime?
+  reviewedByUserId String?
+
+  child      User       @relation("ChildBonusRequests", fields: [childUserId], references: [id])
+  reviewedBy User?      @relation("ReviewerBonusRequests", fields: [reviewedByUserId], references: [id])
+  household  Household? @relation(fields: [householdId], references: [id])
+
+  @@index([childUserId, status])
+  @@index([status])
+  @@index([householdId])
+}
+
+// ─── Weekly Ledger ────────────────────────────────────────────────────────────
+
+model WeeklyLedger {
+  id                    String   @id @default(cuid())
+  childUserId           String
+  householdId           String?
+  weekStart             DateTime
+  weekEnd               DateTime
+  approvedPointsTotal   Int      @default(0)
+  xpAwarded             Int      @default(0)
+  gameCurrencyAwarded   Int      @default(0)
+  allowanceCentsAwarded Int      @default(0)
+  approvedByUserId      String
+  approvedAt            DateTime @default(now())
+
+  child      User       @relation("ChildLedgers", fields: [childUserId], references: [id])
+  approvedBy User       @relation("ApproverLedgers", fields: [approvedByUserId], references: [id])
+  household  Household? @relation(fields: [householdId], references: [id])
+
+  @@unique([childUserId, weekStart])
+  @@index([childUserId, weekStart])
+  @@index([householdId])
+}
+
+// ─── Game / Theme Models ──────────────────────────────────────────────────────
+
+model Theme {
+  id             String         @id @default(cuid())
+  slug           String         @unique
+  name           String
+  configJson     Json
+
+  childProfiles  ChildProfile[]
+  inventoryItems InventoryItem[]
+  storyChapters  StoryChapter[]
+}
+
+model InventoryItem {
+  id          String    @id @default(cuid())
+  themeId     String
+  slug        String    @unique
+  name        String
+  description String?
+  type        ItemType
+  costCurrency Int
+  unlockLevel Int       @default(1)
+  statsJson    Json?
+  imageUrl     String?
+  rarity       ItemRarity   @default(common)
+  cosmeticSlot CosmeticSlot?
+
+  theme         Theme           @relation(fields: [themeId], references: [id])
+  userInventory UserInventory[]
+
+  @@index([themeId, type])
+}
+
+model UserInventory {
+  id              String   @id @default(cuid())
+  childUserId     String
+  householdId     String?
+  inventoryItemId String
+  quantity        Int      @default(1)
+  equipped        Boolean  @default(false)
+  acquiredAt      DateTime @default(now())
+
+  child         User          @relation(fields: [childUserId], references: [id])
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  household     Household?    @relation(fields: [householdId], references: [id])
+
+  @@unique([childUserId, inventoryItemId])
+  @@index([householdId])
+}
+
+model StoryChapter {
+  id              String @id @default(cuid())
+  themeId         String
+  chapterNumber   Int
+  title           String
+  description     String?
+  unlockRulesJson Json
+  rewardJson      Json?
+
+  theme    Theme               @relation(fields: [themeId], references: [id])
+  progress UserStoryProgress[]
+
+  @@unique([themeId, chapterNumber])
+}
+
+model UserStoryProgress {
+  id             String              @id @default(cuid())
+  childUserId    String
+  householdId    String?
+  storyChapterId String
+  status         StoryProgressStatus @default(locked)
+  completedAt    DateTime?
+
+  child     User         @relation(fields: [childUserId], references: [id])
+  chapter   StoryChapter @relation(fields: [storyChapterId], references: [id])
+  household Household?   @relation(fields: [householdId], references: [id])
+
+  @@unique([childUserId, storyChapterId])
+  @@index([householdId])
+}
+
+// ─── Base Defense ─────────────────────────────────────────────────────────────
+
+model BaseState {
+  id              String   @id @default(cuid())
+  childUserId     String   @unique
+  householdId     String?
+  child           User     @relation(fields: [childUserId], references: [id])
+  household       Household? @relation(fields: [householdId], references: [id])
+
+  // Component levels (1–5, upgradeable with scrap in future)
+  doorLevel       Int      @default(1)
+  barricadeLevel  Int      @default(1)
+  fenceLevel      Int      @default(1)
+  lightLevel      Int      @default(1)
+
+  // Current damage per component (0–100)
+  doorDamage      Int      @default(0)
+  barricadeDamage Int      @default(0)
+  fenceDamage     Int      @default(0)
+  lightDamage     Int      @default(0)
+
+  // Advanced structures — level 0 means not yet built; levels 1–5 once constructed
+  watchtowerLevel  Int      @default(0)
+  turretLevel      Int      @default(0)
+  watchtowerDamage Int      @default(0)
+  turretDamage     Int      @default(0)
+
+  survivalStreak  Int      @default(0)
+  updatedAt       DateTime @updatedAt
+  dailyDamages    DailyBaseDamage[]
+
+  @@index([householdId])
+}
+
+model DailyBaseDamage {
+  id              String    @id @default(cuid())
+  childUserId     String
+  householdId     String?
+  child           User      @relation(fields: [childUserId], references: [id])
+  baseStateId     String
+  baseState       BaseState @relation(fields: [baseStateId], references: [id])
+  household       Household? @relation(fields: [householdId], references: [id])
+
+  date            DateTime  // midnight UTC for the day
+
+  doorDamage       Int      @default(0)
+  barricadeDamage  Int      @default(0)
+  fenceDamage      Int      @default(0)
+  lightDamage      Int      @default(0)
+  watchtowerDamage Int      @default(0)
+  turretDamage     Int      @default(0)
+
+  missedChores    Int      @default(0)
+  zombieThreat    String   @default("none")  // none | low | moderate | high | critical
+  attackResult    String   @default("quiet") // quiet | defended | barely_survived | overrun
+  repairApplied   Int      @default(0)       // repair points from yesterday's approved chores
+  raidEventsJson  Json?
+  cinematicSeen   Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+
+  @@unique([childUserId, date])
+  @@index([childUserId, date])
+  @@index([householdId])
+}
+
+// ─── Companions ───────────────────────────────────────────────────────────────
+
+model Companion {
+  id             String          @id @default(cuid())
+  name           String
+  type           String          // dog | cat | rabbit | hamster | parrot | drone | raccoon
+  color          String          @default("#c87a3a")
+  bonusType      String          // detection | luck | visibility | scavenging | speed | comfort
+  bonusValue     Int             @default(5)
+  description    String?
+  costCurrency   Int             @default(20)
+  unlockLevel    Int             @default(1)
+  assetPath      String?
+
+  userCompanions UserCompanion[]
+}
+
+model UserCompanion {
+  id          String    @id @default(cuid())
+  childUserId String
+  householdId String?
+  companionId String
+  equipped    Boolean   @default(false)
+  level       Int       @default(1)
+  acquiredAt  DateTime  @default(now())
+
+  child     User       @relation(fields: [childUserId], references: [id])
+  companion Companion  @relation(fields: [companionId], references: [id])
+  household Household? @relation(fields: [householdId], references: [id])
+
+  @@unique([childUserId, companionId])
+  @@index([childUserId])
+  @@index([householdId])
+}
+
+// ─── Achievements ─────────────────────────────────────────────────────────────
+
+model Achievement {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  name         String
+  description  String
+  rewardType   String   // badge | outfit | decoration
+  rewardValue  String?  // icon emoji or reward slug
+  icon         String?
+  rarity       String   @default("bronze")
+  xpReward     Int      @default(0)
+  scrapsReward Int      @default(0)
+  category     String   @default("chores")
+  triggerType  String   @default("chore_approved")
+  triggerValue Int      @default(1)
+  secret       Boolean  @default(false)
+
+  userAchievements UserAchievement[]
+}
+
+model UserAchievement {
+  id            String   @id @default(cuid())
+  childUserId   String
+  householdId   String?
+  achievementId String
+  earnedAt      DateTime @default(now())
+  notified      Boolean  @default(false)
+
+  child       User        @relation(fields: [childUserId], references: [id])
+  achievement Achievement @relation(fields: [achievementId], references: [id])
+  household   Household?  @relation(fields: [householdId], references: [id])
+
+  @@unique([childUserId, achievementId])
+  @@index([childUserId])
+  @@index([householdId])
+}
+
+// ─── Seasonal Events ──────────────────────────────────────────────────────────
+
+model GameEvent {
+  id                 String   @id @default(cuid())
+  name               String
+  type               String   // zombie_swarm | alien_invasion | winter_storm | robot_uprising
+  difficultyModifier Int      @default(0)
+  description        String?
+  startDate          DateTime
+  endDate            DateTime
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+}
+
+// ─── Survival Settings ────────────────────────────────────────────────────────
+
+model SurvivalSettings {
+  id                      String   @id @default(cuid())
+  householdId             String?
+  nightAttacksEnabled     Boolean  @default(true)
+  minimumDailyPoints      Int      @default(20)
+  requiredCriticalChores  Int      @default(2)
+  difficulty              String   @default("normal") // easy | normal | hard
+  gearBonusesEnabled      Boolean  @default(true)
+  companionBonusesEnabled Boolean  @default(true)
+  eventsEnabled           Boolean  @default(true)
+  // Game Settings UI fields
+  xpMultiplier            Float    @default(1.5)
+  coinMultiplier          Float    @default(1.0)
+  nightRaidFrequency      String   @default("weekly") // daily | weekly | custom
+  rewardDropRate          String   @default("normal") // low | normal | high
+  // Allowance settings
+  xpConversionRate            Int      @default(100)   // XP points per $1 (100 XP = $1)
+  weeklyAllowanceCap          Int?                     // max cents per week; null = no cap
+  allowancePointsPerDollar    Int      @default(100)   // chore points needed to earn $1 allowance
+  updatedAt                   DateTime @updatedAt
+
+  household Household? @relation(fields: [householdId], references: [id])
+
+  @@index([householdId])
+}
+
+// ─── Allowance Records ────────────────────────────────────────────────────────
+
+model AllowanceRecord {
+  id          String   @id @default(cuid())
+  childUserId String
+  householdId String?
+  xpEarned    Int      @default(0)
+  moneyEarned Int      @default(0)  // cents
+  weekStart   DateTime
+  weekEnd     DateTime
+  paid        Boolean  @default(false)
+
+  child     User       @relation(fields: [childUserId], references: [id])
+  household Household? @relation(fields: [householdId], references: [id])
+
+  @@unique([childUserId, weekStart])
+  @@index([childUserId])
+  @@index([householdId])
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id           String   @id @default(cuid())
+  actorUserId  String
+  targetType   String
+  targetId     String
+  action       String
+  metadataJson Json?
+  createdAt    DateTime @default(now())
+
+  actor User @relation("ActorLogs", fields: [actorUserId], references: [id])
+
+  @@index([actorUserId, createdAt])
+  @@index([targetType, targetId])
+}
+
+// ─── Login Attempts ───────────────────────────────────────────────────────────
+
+model LoginAttempt {
+  id                     String   @id @default(cuid())
+  householdCodeAttempted String
+  childUserId            String?
+  ipAddress              String?
+  userAgent              String?
+  success                Boolean
+  createdAt              DateTime @default(now())
+
+  @@index([householdCodeAttempted])
+  @@index([childUserId])
+  @@index([createdAt])
+}
+
+// ─── Security Audit Log ───────────────────────────────────────────────────────
+
+model SecurityAuditLog {
+  id           String   @id @default(cuid())
+  householdId  String?
+  actorUserId  String?
+  targetUserId String?
+  eventType    String
+  metadataJson Json?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+
+  household Household? @relation(fields: [householdId], references: [id])
+  actor     User?      @relation("SecurityActorLogs", fields: [actorUserId], references: [id])
+  target    User?      @relation("SecurityTargetLogs", fields: [targetUserId], references: [id])
+
+  @@index([householdId, createdAt])
+  @@index([eventType, createdAt])
+  @@index([actorUserId])
+  @@index([targetUserId])
+}
+
+// ─── Chore Templates ──────────────────────────────────────────────────────────
+
+model ChoreTemplate {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  category      String
+  ageMin        Int      @default(4)
+  ageMax        Int?
+  defaultPoints Int      @default(10)
+  durationMins  Int?
+  scheduleType  String   @default("daily")
+  timeOfDay     String   @default("any")
+  requiresPhoto Boolean  @default(false)
+  icon          String?
+  tags          String[]
+  isGlobal      Boolean  @default(true)
+  householdId   String?
+  createdAt     DateTime @default(now())
+
+  household Household? @relation(fields: [householdId], references: [id])
+
+  @@index([householdId])
+}
+
+// ─── Allowance Payouts ────────────────────────────────────────────────────────
+
+model AllowancePayout {
+  id            String    @id @default(cuid())
+  householdId   String
+  childId       String
+  amountCents   Int
+  periodStart   DateTime
+  periodEnd     DateTime
+  status        String    @default("pending")
+  paidAt        DateTime?
+  paidByUserId  String?
+  paymentMethod String?
+  parentNote    String?
+  createdAt     DateTime  @default(now())
+
+  household Household @relation(fields: [householdId], references: [id])
+  child     User      @relation("PayoutChild", fields: [childId], references: [id])
+  paidBy    User?     @relation("PayoutPayer", fields: [paidByUserId], references: [id])
+
+  @@index([householdId])
+  @@index([childId])
+}
+
+// ─── Sibling Challenges ───────────────────────────────────────────────────────
+
+model Challenge {
+  id           String   @id @default(cuid())
+  householdId  String
+  type         String
+  status       String   @default("active")
+  title        String
+  description  String?
+  startDate    DateTime
+  endDate      DateTime
+  targetMetric String   @default("points")
+  targetValue  Int      @default(0)
+  createdBy    String
+  winnerId     String?
+  createdAt    DateTime @default(now())
+
+  household    Household              @relation(fields: [householdId], references: [id])
+  participants ChallengeParticipant[]
+  rewards      ChallengeReward[]
+
+  @@index([householdId])
+}
+
+model ChallengeParticipant {
+  id          String    @id @default(cuid())
+  challengeId String
+  childId     String
+  progress    Int       @default(0)
+  completed   Boolean   @default(false)
+  completedAt DateTime?
+
+  challenge Challenge @relation(fields: [challengeId], references: [id])
+  child     User      @relation(fields: [childId], references: [id])
+
+  @@unique([challengeId, childId])
+}
+
+model ChallengeReward {
+  id            String @id @default(cuid())
+  challengeId   String
+  rewardType    String
+  rewardAmount  Int    @default(0)
+  recipientType String @default("winner")
+
+  challenge Challenge @relation(fields: [challengeId], references: [id])
+}
+
+// ─── Auth Rate Limits ─────────────────────────────────────────────────────────
+
+model AuthRateLimit {
+  id          String    @id @default(cuid())
+  key         String
+  actionType  String
+  attempts    Int       @default(0)
+  lockedUntil DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([key, actionType])
+  @@index([key, actionType])
+}
+
+// ─── Password Reset ───────────────────────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}

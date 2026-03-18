@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Survivor Creator — Zombie Shelter Defense</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Base ──────────────────────────────────────────── */
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;min-height:100vh;background:#050d12;color:#c8d8e0;font-family:'Press Start 2P',monospace;overflow-x:hidden;}
+:root{
+  --orange:#f97316;--green:#3dff7a;--navy:#0a1520;--panel:#0e1e2a;
+  --border:#1a3040;--gold:#f5c842;--red:#ef4444;--blue:#3b82f6;
+}
+
+/* ── Layout ────────────────────────────────────────────────── */
+.page{display:flex;flex-direction:column;align-items:center;padding:16px 8px 40px;}
+.top-bar{width:100%;max-width:900px;display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.top-bar h1{font-size:clamp(7px,1.6vw,13px);color:var(--orange);text-shadow:0 0 16px var(--orange);}
+.back-link{font-size:7px;color:#4a7a9a;text-decoration:none;border:1px solid #1a3a50;padding:5px 10px;border-radius:3px;}
+.back-link:hover{color:var(--green);}
+
+.workspace{width:100%;max-width:900px;display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
+
+/* ── Preview Panel ─────────────────────────────────────────── */
+.preview-panel{
+  flex:0 0 260px;display:flex;flex-direction:column;align-items:center;gap:10px;
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;
+}
+.avatar-stage{
+  position:relative;width:200px;height:320px;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;perspective:600px;
+}
+.avatar-stage:hover .avatar-wrap{transform:rotateY(calc(var(--mx,0)*5deg)) rotateX(calc(var(--my,0)*-3deg));}
+.avatar-wrap{
+  transition:transform .15s ease;transform-style:preserve-3d;
+  filter:drop-shadow(0 8px 24px rgba(0,0,0,0.6));
+}
+.avatar-wrap svg{display:block;}
+
+/* scan line */
+@keyframes scan{0%{top:-4px;opacity:0}5%{opacity:.4}90%{opacity:.3}100%{top:100%;opacity:0}}
+.scan-line{
+  position:absolute;left:0;width:100%;height:3px;
+  background:linear-gradient(90deg,transparent,rgba(61,255,122,0.6),transparent);
+  pointer-events:none;animation:scan 8s ease-in-out infinite;
+}
+@keyframes spin360{from{transform:rotateY(0)}to{transform:rotateY(360deg)}}
+.spinning .avatar-wrap{animation:spin360 1.5s ease-in-out;}
+
+.pose-btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
+.pose-btn{
+  font-family:'Press Start 2P',monospace;font-size:6px;
+  background:var(--navy);border:1px solid var(--border);color:#7aa0b8;
+  padding:5px 8px;border-radius:4px;cursor:pointer;transition:.15s;
+}
+.pose-btn.active,.pose-btn:hover{border-color:var(--orange);color:var(--orange);box-shadow:0 0 8px rgba(249,115,22,.3);}
+
+.spin-btn{
+  font-family:'Press Start 2P',monospace;font-size:6px;
+  background:transparent;border:1px solid #1a4a30;color:var(--green);
+  padding:5px 14px;border-radius:4px;cursor:pointer;
+}
+.spin-btn:hover{box-shadow:0 0 10px rgba(61,255,122,.3);}
+
+.name-plate{
+  width:100%;text-align:center;
+  background:transparent;border:none;border-bottom:1px solid var(--border);
+  font-family:'Press Start 2P',monospace;font-size:7px;
+  color:var(--orange);text-shadow:0 0 10px var(--orange);padding:4px 0;
+  outline:none;text-align:center;
+}
+.name-plate::placeholder{color:#4a5a6a;}
+
+/* ── Customizer Panel ──────────────────────────────────────── */
+.custom-panel{
+  flex:1;min-width:280px;background:var(--panel);
+  border:1px solid var(--border);border-radius:12px;padding:16px;
+}
+
+/* Gender Toggle */
+.gender-row{display:flex;gap:8px;margin-bottom:14px;}
+.gender-btn{
+  flex:1;font-family:'Press Start 2P',monospace;font-size:8px;
+  padding:8px 0;border-radius:6px;cursor:pointer;transition:.15s;
+  background:var(--navy);border:1px solid var(--border);color:#6a8a9a;
+}
+.gender-btn.active{background:rgba(249,115,22,.12);border-color:var(--orange);color:var(--orange);}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap;}
+.tab{
+  font-family:'Press Start 2P',monospace;font-size:7px;
+  padding:6px 8px;border-radius:5px;cursor:pointer;transition:.15s;
+  background:var(--navy);border:1px solid var(--border);color:#5a7a8a;
+}
+.tab.active{background:rgba(249,115,22,.1);border-color:var(--orange);color:var(--orange);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* Option rows */
+.section-label{font-size:7px;color:#4a8a6a;margin:12px 0 6px;letter-spacing:.08em;}
+.swatch-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px;}
+.swatch{
+  width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;
+  transition:.15s;position:relative;
+}
+.swatch.active,.swatch:hover{border-color:var(--orange);box-shadow:0 0 8px var(--orange);}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 6px var(--orange)}50%{box-shadow:0 0 14px var(--orange),0 0 20px rgba(249,115,22,.4)}}
+.swatch.active{animation:pulse-glow 1.8s ease-in-out infinite;}
+.swatch.locked{position:relative;cursor:not-allowed;}
+.swatch.locked::after{
+  content:'🔒';position:absolute;inset:0;display:flex;align-items:center;
+  justify-content:center;font-size:10px;background:rgba(0,0,0,.65);border-radius:50%;
+}
+
+.style-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px;}
+.style-card{
+  background:var(--navy);border:1px solid var(--border);border-radius:6px;
+  padding:6px 4px;text-align:center;cursor:pointer;transition:.15s;font-size:6px;color:#7aa0b8;
+}
+.style-card.active,.style-card:hover{border-color:var(--orange);color:var(--orange);}
+.style-card.active{animation:pulse-glow 1.8s ease-in-out infinite;}
+.style-card svg{display:block;margin:0 auto 4px;}
+
+/* Weapon grid */
+.weapon-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px;}
+.weapon-card{
+  background:var(--navy);border:1px solid var(--border);border-radius:6px;
+  padding:8px 4px;text-align:center;cursor:pointer;transition:.15s;font-size:5px;color:#7aa0b8;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.weapon-card.active,.weapon-card:hover{border-color:var(--orange);color:var(--orange);}
+.weapon-card.active{animation:pulse-glow 1.8s ease-in-out infinite;}
+.weapon-card svg{display:block;}
+
+/* Patches */
+.patch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px;}
+.patch-card{
+  background:var(--navy);border:1px solid var(--border);border-radius:6px;
+  padding:6px;text-align:center;cursor:pointer;transition:.15s;font-size:14px;
+}
+.patch-card.active{border-color:var(--gold);background:rgba(245,200,66,.08);box-shadow:0 0 8px rgba(245,200,66,.3);}
+
+/* Save bar */
+.save-bar{display:flex;gap:10px;margin-top:16px;}
+.save-btn{
+  flex:1;font-family:'Press Start 2P',monospace;font-size:7px;
+  padding:10px;border-radius:6px;cursor:pointer;transition:.15s;
+  background:rgba(61,255,122,.1);border:1px solid var(--green);color:var(--green);
+}
+.save-btn:hover{background:rgba(61,255,122,.18);box-shadow:0 0 12px rgba(61,255,122,.3);}
+.share-btn{
+  flex:1;font-family:'Press Start 2P',monospace;font-size:7px;
+  padding:10px;border-radius:6px;cursor:pointer;transition:.15s;
+  background:rgba(249,115,22,.1);border:1px solid var(--orange);color:var(--orange);
+}
+.share-btn:hover{background:rgba(249,115,22,.18);}
+
+/* Toast */
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:#0e2a1a;border:1px solid var(--green);color:var(--green);
+  font-size:8px;padding:10px 20px;border-radius:6px;
+  opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;
+}
+.toast.show{opacity:1;}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="top-bar">
+    <h1>☣ SURVIVOR CREATOR</h1>
+    <a class="back-link" href="/">← BACK TO GAME</a>
+  </div>
+
+  <div class="workspace">
+    <!-- ── Preview Panel ────────────────────────────────── -->
+    <div class="preview-panel">
+      <div class="avatar-stage" id="avatarStage">
+        <div class="scan-line"></div>
+        <div class="avatar-wrap" id="avatarWrap">
+          <!-- SVG injected by JS -->
+        </div>
+      </div>
+
+      <div class="pose-btns">
+        <button class="pose-btn active" data-pose="idle">😤 Swagger</button>
+        <button class="pose-btn" data-pose="combat">⚔️ Combat</button>
+        <button class="pose-btn" data-pose="walk">🚶 Walk</button>
+      </div>
+      <button class="spin-btn" id="spinBtn">↺ SPIN</button>
+      <input class="name-plate" id="namePlate" maxlength="16" value="KID SURVIVOR" placeholder="YOUR NAME">
+    </div>
+
+    <!-- ── Customiser ──────────────────────────────────── -->
+    <div class="custom-panel">
+      <!-- Gender -->
+      <div class="gender-row">
+        <button class="gender-btn active" data-gender="girl">👧 GIRL</button>
+        <button class="gender-btn" data-gender="boy">👦 BOY</button>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tabs">
+        <button class="tab active" data-tab="skin">🎨 Skin</button>
+        <button class="tab" data-tab="eyes">👁 Eyes</button>
+        <button class="tab" data-tab="hair">💇 Hair</button>
+        <button class="tab" data-tab="gear">🎽 Gear</button>
+        <button class="tab" data-tab="weapons">🗡 Weapons</button>
+      </div>
+
+      <!-- ── SKIN TAB ── -->
+      <div class="tab-panel active" id="tab-skin">
+        <div class="section-label">SKIN TONE</div>
+        <div class="swatch-row" id="skinSwatches"></div>
+      </div>
+
+      <!-- ── EYES TAB ── -->
+      <div class="tab-panel" id="tab-eyes">
+        <div class="section-label">EYE COLOR</div>
+        <div class="swatch-row" id="eyeSwatches"></div>
+        <div class="section-label">EYE STYLE</div>
+        <div class="style-grid" id="eyeStyles"></div>
+        <div class="section-label">EYEBROWS</div>
+        <div class="style-grid" id="browStyles"></div>
+      </div>
+
+      <!-- ── HAIR TAB ── -->
+      <div class="tab-panel" id="tab-hair">
+        <div class="section-label">HAIR COLOR</div>
+        <div class="swatch-row" id="hairSwatches"></div>
+        <div class="section-label">HAIR STYLE</div>
+        <div class="style-grid" id="hairStyles"></div>
+      </div>
+
+      <!-- ── GEAR TAB ── -->
+      <div class="tab-panel" id="tab-gear">
+        <div class="section-label">JACKET COLOR</div>
+        <div class="swatch-row" id="jacketSwatches"></div>
+        <div class="section-label">GOGGLE LENS COLOR</div>
+        <div class="swatch-row" id="goggleLensSwatches"></div>
+        <div class="section-label">GOGGLE FRAME STYLE</div>
+        <div class="style-grid" id="goggleFrameStyles"></div>
+        <div class="section-label">GOGGLE STRAP</div>
+        <div class="style-grid" id="goggleStrapStyles"></div>
+        <div class="section-label">JACKET PATCHES</div>
+        <div class="patch-grid" id="patchGrid"></div>
+      </div>
+
+      <!-- ── WEAPONS TAB ── -->
+      <div class="tab-panel" id="tab-weapons">
+        <div class="section-label">MELEE WEAPON</div>
+        <div class="weapon-grid" id="meleeWeapons"></div>
+        <div class="section-label">RANGED / BACKPACK</div>
+        <div class="weapon-grid" id="rangedWeapons"></div>
+      </div>
+
+      <!-- Save bar -->
+      <div class="save-bar">
+        <button class="save-btn" id="saveBtn">💾 SAVE SURVIVOR</button>
+        <button class="share-btn" id="shareBtn">📋 COPY CODE</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ══════════════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════════════
+const cfg = {
+  gender:       'girl',
+  skin:         '#c68642',
+  eyeColor:     '#3a7a3a',
+  eyeStyle:     'round',
+  browStyle:    'arch',
+  hairColor:    '#5a2d0c',
+  hairStyle:    'twinPigtails',
+  jacketColor:  '#2d5a2d',
+  goggleLens:   '#40a0a0',
+  goggleFrame:  'round',
+  goggleStrap:  'elastic',
+  patches:      [],
+  melee:        'bat',
+  ranged:       'slingshot',
+  pose:         'idle',
+  name:         'KID SURVIVOR',
+};
+
+// ══════════════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════════════
+const SKIN_TONES = [
+  {color:'#fde8c8',label:'Light'},   {color:'#e8c090',label:'Fair'},
+  {color:'#c68642',label:'Medium'},  {color:'#8d5524',label:'Tan'},
+  {color:'#5c3317',label:'Deep'},    {color:'#3b1f0e',label:'Rich'},
+];
+const EYE_COLORS = [
+  {color:'#2a5a2a',label:'Green'},   {color:'#3a6a9a',label:'Blue'},
+  {color:'#5a3010',label:'Brown'},   {color:'#4a4a60',label:'Grey'},
+  {color:'#8a2a2a',label:'Red'},     {color:'#6a2a8a',label:'Purple'},
+];
+const HAIR_COLORS = [
+  {color:'#1a0a00',label:'Black'},   {color:'#5a2d0c',label:'Brown'},
+  {color:'#8a6020',label:'Blonde'},  {color:'#8a1010',label:'Red'},
+  {color:'#c87820',label:'Auburn'},  {color:'#a0a0a0',label:'Grey'},
+  {color:'#1a50c0',label:'Blue',locked:true}, {color:'#c0c0c0',label:'Silver',locked:true},
+];
+const JACKET_COLORS = [
+  {color:'#2d5a2d'},{color:'#1a3a5a'},{color:'#4a2020'},
+  {color:'#3a3a1a'},{color:'#1a1a3a'},{color:'#2a1a2a'},
+];
+const GOGGLE_LENS_COLORS = [
+  {color:'#40a0a0'},{color:'#c04020'},{color:'#2060c0'},
+  {color:'#a0c020'},{color:'#c0a020'},{color:'#802080'},
+];
+const EYE_STYLES = ['round','almond','squint','wide'];
+const BROW_STYLES = ['arch','fierce','flat','raised'];
+const GOGGLE_FRAMES = ['round','aviator','visor','scifi'];
+const GOGGLE_STRAPS = ['elastic','camo','neon','chain'];
+const PATCHES = [
+  {id:'lightning',emoji:'⚡',label:'Lightning'},
+  {id:'clover',   emoji:'🍀',label:'Clover'},
+  {id:'biohazard',emoji:'☢️', label:'Biohazard'},
+  {id:'skull',    emoji:'💀',label:'Skull'},
+  {id:'heart',    emoji:'❤️', label:'Heart'},
+  {id:'star',     emoji:'⭐',label:'Star'},
+];
+const GIRL_HAIR = [
+  {id:'twinPigtails', label:'Twin Pigtails'},
+  {id:'ponytailHigh', label:'Ponytail High'},
+  {id:'messyBun',     label:'Messy Bun'},
+  {id:'shortWavy',    label:'Short Wavy'},
+  {id:'longStraight', label:'Long Straight'},
+  {id:'curlyAfro',    label:'Curly Afro'},
+];
+const BOY_HAIR = [
+  {id:'messySpiky',   label:'Messy Spiky'},
+  {id:'shortClean',   label:'Short Clean'},
+  {id:'undercut',     label:'Undercut'},
+  {id:'buzzCut',      label:'Buzz Cut'},
+  {id:'fauxHawk',     label:'Faux Hawk'},
+  {id:'curlyCrown',   label:'Curly Crown'},
+];
+const MELEE_WEAPONS = [
+  {id:'bat',      label:'ZOM-B-GONE Bat'},
+  {id:'crowbar',  label:'Crowbar'},
+  {id:'nailBoard',label:'Nail Board'},
+  {id:'axe',      label:'Fire Axe'},
+  {id:'wrench',   label:'Wrench'},
+];
+const RANGED_WEAPONS = [
+  {id:'slingshot',label:'Slingshot'},
+  {id:'crossbow', label:'Crossbow'},
+  {id:'waterGun', label:'Water Gun'},
+  {id:'none',     label:'None'},
+];
+
+// ══════════════════════════════════════════════════════════════
+// SVG RENDERING
+// ══════════════════════════════════════════════════════════════
+function shade(hex, pct) {
+  const n=parseInt(hex.slice(1),16), r=n>>16, g=(n>>8)&0xff, b=n&0xff;
+  const f=1+pct/100;
+  return '#'+[r,g,b].map(c=>Math.min(255,Math.max(0,Math.round(c*f))).toString(16).padStart(2,'0')).join('');
+}
+
+function renderHair(style, color) {
+  const c = color, d = shade(color,-30), hi = shade(color,40);
+  switch(style) {
+    case 'twinPigtails': return `
+      <!-- base skull coverage -->
+      <ellipse cx="100" cy="70" rx="38" ry="34" fill="${c}"/>
+      <!-- left pigtail -->
+      <g transform="rotate(-38,65,60)">
+        <ellipse cx="52" cy="42" rx="10" ry="28" fill="${c}"/>
+        <ellipse cx="49" cy="44" rx="6"  ry="20" fill="${d}"/>
+        <path d="M44,36 Q38,30 42,38 Q36,40 43,46 Q37,48 44,54" stroke="${hi}" stroke-width="1.2" fill="none"/>
+        <!-- hair tie -->
+        <ellipse cx="52" cy="62" rx="7" ry="4" fill="#cc2020"/>
+        <ellipse cx="52" cy="62" rx="4" ry="2.5" fill="#ee4444"/>
+      </g>
+      <!-- right pigtail -->
+      <g transform="rotate(38,135,60)">
+        <ellipse cx="148" cy="42" rx="10" ry="28" fill="${c}"/>
+        <ellipse cx="151" cy="44" rx="6"  ry="20" fill="${d}"/>
+        <path d="M156,36 Q162,30 158,38 Q164,40 157,46 Q163,48 156,54" stroke="${hi}" stroke-width="1.2" fill="none"/>
+        <!-- hair tie -->
+        <ellipse cx="148" cy="62" rx="7" ry="4" fill="#cc2020"/>
+        <ellipse cx="148" cy="62" rx="4" ry="2.5" fill="#ee4444"/>
+      </g>
+      <!-- top volume + wayward strands -->
+      <ellipse cx="100" cy="50" rx="36" ry="22" fill="${c}"/>
+      <path d="M68,44 Q62,30 72,38" stroke="${c}" stroke-width="6" stroke-linecap="round" fill="none"/>
+      <path d="M132,44 Q138,30 128,38" stroke="${c}" stroke-width="6" stroke-linecap="round" fill="none"/>
+      <path d="M90,42 Q88,28 94,36" stroke="${d}" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M110,42 Q112,28 106,36" stroke="${d}" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <!-- highlight -->
+      <path d="M84,48 Q100,40 116,48" stroke="${hi}" stroke-width="1.5" fill="none" opacity=".5"/>`;
+
+    case 'ponytailHigh': return `
+      <ellipse cx="100" cy="68" rx="37" ry="32" fill="${c}"/>
+      <ellipse cx="100" cy="48" rx="30" ry="20" fill="${c}"/>
+      <path d="M100,40 Q90,28 100,52 Q110,28 100,40" fill="${d}"/>
+      <rect x="97" y="40" width="6" height="4" rx="2" fill="#cc2020"/>
+      <path d="M100,44 Q115,60 108,95 Q100,110 92,95 Q85,60 100,44" fill="${c}"/>
+      <path d="M100,48 Q110,64 106,92" stroke="${hi}" stroke-width="1.2" fill="none"/>`;
+
+    case 'messyBun': return `
+      <ellipse cx="100" cy="68" rx="37" ry="32" fill="${c}"/>
+      <circle cx="100" cy="46" r="18" fill="${c}"/>
+      <circle cx="100" cy="46" r="14" fill="${d}"/>
+      <circle cx="100" cy="46" r="10" fill="${c}"/>
+      <path d="M84,52 Q78,44 86,48" stroke="${c}" stroke-width="4" stroke-linecap="round" fill="none"/>
+      <path d="M116,52 Q122,44 114,48" stroke="${c}" stroke-width="4" stroke-linecap="round" fill="none"/>`;
+
+    case 'shortWavy': return `
+      <ellipse cx="100" cy="68" rx="37" ry="32" fill="${c}"/>
+      <ellipse cx="100" cy="54" rx="38" ry="22" fill="${c}"/>
+      <path d="M62,70 Q68,80 74,72 Q80,64 86,74 Q92,84 100,74 Q108,64 114,74 Q120,84 126,72 Q132,64 138,70" fill="${c}" stroke="${d}" stroke-width="1"/>
+      <path d="M68,56 Q64,46 72,52" stroke="${c}" stroke-width="5" stroke-linecap="round" fill="none"/>
+      <path d="M132,56 Q136,46 128,52" stroke="${c}" stroke-width="5" stroke-linecap="round" fill="none"/>`;
+
+    case 'longStraight': return `
+      <ellipse cx="100" cy="68" rx="37" ry="32" fill="${c}"/>
+      <rect x="63" y="60" width="18" height="90" rx="4" fill="${c}"/>
+      <rect x="119" y="60" width="18" height="90" rx="4" fill="${c}"/>
+      <ellipse cx="100" cy="50" rx="37" ry="20" fill="${c}"/>
+      <path d="M66,62 L66,148" stroke="${hi}" stroke-width="1" opacity=".4"/>
+      <path d="M134,62 L134,148" stroke="${hi}" stroke-width="1" opacity=".4"/>`;
+
+    case 'curlyAfro': return `
+      <circle cx="100" cy="60" r="52" fill="${c}"/>
+      <circle cx="68"  cy="52" r="16" fill="${d}"/>
+      <circle cx="132" cy="52" r="16" fill="${d}"/>
+      <circle cx="80"  cy="38" r="14" fill="${c}"/>
+      <circle cx="120" cy="38" r="14" fill="${c}"/>
+      <circle cx="100" cy="34" r="16" fill="${d}"/>
+      <circle cx="100" cy="34" r="10" fill="${c}"/>`;
+
+    // BOY STYLES
+    case 'messySpiky': return `
+      <ellipse cx="100" cy="72" rx="37" ry="30" fill="${c}"/>
+      <!-- spiky tufts -->
+      <path d="M80,56 L76,30 L85,52" fill="${c}"/>
+      <path d="M88,50 L86,22 L96,48" fill="${d}"/>
+      <path d="M100,48 L100,18 L108,46" fill="${c}"/>
+      <path d="M112,50 L114,22 L120,48" fill="${d}"/>
+      <path d="M120,56 L124,32 L128,54" fill="${c}"/>
+      <!-- side volume -->
+      <ellipse cx="100" cy="56" rx="36" ry="20" fill="${c}"/>
+      <!-- texture streaks -->
+      <path d="M82,52 L79,34" stroke="${d}" stroke-width="2" stroke-linecap="round"/>
+      <path d="M94,50 L92,28" stroke="${d}" stroke-width="2" stroke-linecap="round"/>
+      <path d="M106,50 L108,28" stroke="${d}" stroke-width="2" stroke-linecap="round"/>
+      <path d="M118,52 L120,36" stroke="${d}" stroke-width="2" stroke-linecap="round"/>
+      <!-- highlights -->
+      <path d="M84,56 Q100,48 116,56" stroke="${hi}" stroke-width="1.2" fill="none" opacity=".5"/>`;
+
+    case 'shortClean': return `
+      <ellipse cx="100" cy="68" rx="37" ry="32" fill="${c}"/>
+      <ellipse cx="100" cy="52" rx="36" ry="18" fill="${c}"/>
+      <path d="M63,64 Q63,48 72,46 Q100,40 128,46 Q137,48 137,64" fill="${c}"/>`;
+
+    case 'undercut': return `
+      <ellipse cx="100" cy="72" rx="35" ry="28" fill="${shade(color,-60)}"/>
+      <ellipse cx="100" cy="56" rx="32" ry="20" fill="${c}"/>
+      <path d="M68,62 Q68,46 100,42 Q132,46 132,62" fill="${c}"/>`;
+
+    case 'buzzCut': return `
+      <ellipse cx="100" cy="68" rx="37" ry="32" fill="${shade(color,-40)}"/>
+      <ellipse cx="100" cy="58" rx="36" ry="20" fill="${shade(color,-20)}"/>
+      <path d="M64,64 Q64,48 100,44 Q136,48 136,64" fill="${shade(color,-10)}"/>`;
+
+    case 'fauxHawk': return `
+      <ellipse cx="100" cy="72" rx="36" ry="28" fill="${shade(color,-50)}"/>
+      <ellipse cx="100" cy="60" rx="22" ry="24" fill="${c}"/>
+      <path d="M88,46 L85,20 L100,44 L115,20 L112,46" fill="${c}"/>`;
+
+    case 'curlyCrown': return `
+      <ellipse cx="100" cy="72" rx="36" ry="28" fill="${c}"/>
+      <circle cx="82"  cy="54" r="10" fill="${d}"/>
+      <circle cx="100" cy="48" r="12" fill="${c}"/>
+      <circle cx="118" cy="54" r="10" fill="${d}"/>
+      <circle cx="90"  cy="44" r="8"  fill="${c}"/>
+      <circle cx="110" cy="44" r="8"  fill="${c}"/>`;
+
+    default: return `<ellipse cx="100" cy="65" rx="37" ry="32" fill="${c}"/>`;
+  }
+}
+
+function renderEyes(style, color) {
+  const c = color;
+  const shapes = {
+    round:  {lx:82, rx:118, ry:106, w:12, h:12},
+    almond: {lx:82, rx:118, ry:106, w:14, h:9},
+    squint: {lx:82, rx:118, ry:108, w:14, h:6},
+    wide:   {lx:82, rx:118, ry:104, w:13, h:14},
+  };
+  const s = shapes[style]||shapes.round;
+  return `
+    <ellipse cx="${s.lx}" cy="${s.ry}" rx="${s.w/2}" ry="${s.h/2}" fill="white"/>
+    <ellipse cx="${s.lx}" cy="${s.ry}" rx="${s.w/2-3}" ry="${s.h/2-2}" fill="${c}"/>
+    <ellipse cx="${s.lx}" cy="${s.ry}" rx="${s.w/2-5}" ry="${s.h/2-4}" fill="#111"/>
+    <ellipse cx="${s.lx-2}" cy="${s.ry-2}" rx="2" ry="2" fill="white" opacity=".8"/>
+    <ellipse cx="${s.rx}" cy="${s.ry}" rx="${s.w/2}" ry="${s.h/2}" fill="white"/>
+    <ellipse cx="${s.rx}" cy="${s.ry}" rx="${s.w/2-3}" ry="${s.h/2-2}" fill="${c}"/>
+    <ellipse cx="${s.rx}" cy="${s.ry}" rx="${s.w/2-5}" ry="${s.h/2-4}" fill="#111"/>
+    <ellipse cx="${s.rx-2}" cy="${s.ry-2}" rx="2" ry="2" fill="white" opacity=".8"/>`;
+}
+
+function renderBrows(style) {
+  switch(style) {
+    case 'fierce': return `
+      <path d="M70,92 Q82,85 94,90" stroke="#3a2010" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M106,90 Q118,85 130,92" stroke="#3a2010" stroke-width="3" stroke-linecap="round" fill="none"/>`;
+    case 'flat': return `
+      <path d="M70,94 L94,92" stroke="#3a2010" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <path d="M106,92 L130,94" stroke="#3a2010" stroke-width="2.5" stroke-linecap="round" fill="none"/>`;
+    case 'raised': return `
+      <path d="M70,88 Q82,82 94,86" stroke="#3a2010" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <path d="M106,86 Q118,82 130,88" stroke="#3a2010" stroke-width="2.5" stroke-linecap="round" fill="none"/>`;
+    default: return `
+      <path d="M70,94 Q82,88 94,92" stroke="#3a2010" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <path d="M106,92 Q118,88 130,94" stroke="#3a2010" stroke-width="2.5" stroke-linecap="round" fill="none"/>`;
+  }
+}
+
+function renderGoggles(frame, lens, strap) {
+  const lc = lens;
+  const strapColors = {elastic:'#3a3a3a', camo:'#4a5a2a', neon:'#20d0a0', chain:'#707070'};
+  const sc = strapColors[strap]||'#3a3a3a';
+  let frameShape = '';
+  switch(frame) {
+    case 'aviator':
+      frameShape = `
+        <path d="M68,78 Q82,70 94,78 Q82,86 68,78z" fill="${lc}" opacity=".75" stroke="#2a2a2a" stroke-width="2"/>
+        <path d="M106,78 Q118,70 132,78 Q118,86 106,78z" fill="${lc}" opacity=".75" stroke="#2a2a2a" stroke-width="2"/>
+        <line x1="94" y1="78" x2="106" y2="78" stroke="#2a2a2a" stroke-width="2"/>`;
+      break;
+    case 'visor':
+      frameShape = `
+        <path d="M64,72 Q100,64 136,72 L132,82 Q100,90 68,82z" fill="${lc}" opacity=".65" stroke="#2a2a2a" stroke-width="2"/>`;
+      break;
+    case 'scifi':
+      frameShape = `
+        <rect x="66" y="72" width="28" height="16" rx="3" fill="${lc}" opacity=".75" stroke="#2a2a2a" stroke-width="2"/>
+        <rect x="106" y="72" width="28" height="16" rx="3" fill="${lc}" opacity=".75" stroke="#2a2a2a" stroke-width="2"/>
+        <rect x="94" y="76" width="12" height="8" rx="1" fill="#1a1a1a"/>
+        <line x1="64" y1="80" x2="66" y2="80" stroke="${lc}" stroke-width="3"/>
+        <line x1="134" y1="80" x2="136" y2="80" stroke="${lc}" stroke-width="3"/>`;
+      break;
+    default: // round
+      frameShape = `
+        <circle cx="82"  cy="79" r="14" fill="${lc}" opacity=".75" stroke="#2a2a2a" stroke-width="2"/>
+        <circle cx="118" cy="79" r="14" fill="${lc}" opacity=".75" stroke="#2a2a2a" stroke-width="2"/>
+        <line x1="96" y1="79" x2="104" y2="79" stroke="#2a2a2a" stroke-width="2"/>`;
+  }
+  const strapPat = strap==='camo'
+    ? `stroke-dasharray="6,3" stroke="${sc}"`
+    : strap==='chain' ? `stroke-dasharray="3,2" stroke="${sc}" stroke-width="3"`
+    : `stroke="${sc}"`;
+  return `
+    <!-- strap -->
+    <path d="M62,80 Q50,75 52,72" stroke-width="5" stroke-linecap="round" fill="none" ${strapPat}/>
+    <path d="M138,80 Q150,75 148,72" stroke-width="5" stroke-linecap="round" fill="none" ${strapPat}/>
+    ${frameShape}
+    <!-- lens sheen -->
+    <ellipse cx="78" cy="76" rx="4" ry="2.5" fill="white" opacity=".3" transform="rotate(-20,78,76)"/>
+    <ellipse cx="114" cy="76" rx="4" ry="2.5" fill="white" opacity=".3" transform="rotate(-20,114,76)"/>`;
+}
+
+function renderWeaponMelee(type, pose) {
+  const angle = pose==='combat' ? -30 : -15;
+  const tx = 145, ty = 220;
+  let shape = '';
+  switch(type) {
+    case 'crowbar': shape = `
+      <rect x="0" y="0" width="8" height="80" rx="3" fill="#5a5a5a"/>
+      <rect x="0" y="0" width="8" height="80" rx="3" fill="none" stroke="#3a2a1a" stroke-width="1" stroke-dasharray="4,6"/>
+      <path d="M4,0 Q14,-10 18,-4 Q14,4 4,8" fill="#4a4a4a"/>
+      <path d="M4,80 Q-8,76 -6,68 Q2,66 8,72" fill="#4a4a4a"/>`;
+      break;
+    case 'nailBoard': shape = `
+      <rect x="-6" y="-4" width="18" height="70" rx="2" fill="#8a6020"/>
+      <circle cx="2" cy="4"  r="3" fill="#aaaaaa"/><circle cx="8" cy="4"  r="3" fill="#aaaaaa"/>
+      <circle cx="2" cy="18" r="3" fill="#aaaaaa"/><circle cx="8" cy="18" r="3" fill="#aaaaaa"/>
+      <circle cx="2" cy="32" r="3" fill="#aaaaaa"/><circle cx="8" cy="32" r="3" fill="#aaaaaa"/>`;
+      break;
+    case 'axe': shape = `
+      <rect x="2" y="20" width="6" height="70" rx="2" fill="#c83020"/>
+      <path d="M-10,20 Q0,8 14,14 Q10,30 -2,32z" fill="#7a7a7a"/>
+      <path d="M-8,22 Q0,12 12,17" stroke="#aaaaaa" stroke-width="1.5" fill="none"/>`;
+      break;
+    case 'wrench': shape = `
+      <rect x="0" y="10" width="8" height="70" rx="3" fill="#5a5a60"/>
+      <path d="M-4,10 Q4,-2 12,10 Q8,20 0,18 Q-4,16 -4,10z" fill="#4a4a50"/>
+      <path d="M-2,78 Q4,88 10,78 Q8,70 4,70 Q0,70 -2,78z" fill="#4a4a50"/>`;
+      break;
+    default: // bat ZOM-B-GONE
+      shape = `
+        <rect x="-2" y="55" width="12" height="28" rx="4" fill="#8a6020"/>
+        <ellipse cx="4" cy="30" rx="16" ry="60" fill="#a07030"/>
+        <ellipse cx="0" cy="20" rx="14" ry="50" fill="#b08040"/>
+        <!-- text branding -->
+        <text x="4" y="30" text-anchor="middle" font-size="5" fill="#2a1a00"
+          font-family="Arial,sans-serif" font-weight="bold" transform="rotate(90,4,30)">ZOM-B-GONE</text>
+        <!-- tape grip -->
+        <rect x="-2" y="58" width="12" height="4" rx="1" fill="#1a1a1a" opacity=".7"/>
+        <rect x="-2" y="66" width="12" height="4" rx="1" fill="#1a1a1a" opacity=".7"/>
+        <!-- nails in barrel -->
+        <circle cx="-4" cy="18" r="2" fill="#8a8a8a"/>
+        <circle cx="12"  cy="25" r="2" fill="#8a8a8a"/>
+        <circle cx="-6"  cy="32" r="2" fill="#8a8a8a"/>`;
+  }
+  return `<g id="bat" transform="translate(${tx},${ty}) rotate(${angle})">
+    ${shape}
+  </g>`;
+}
+
+function renderBackpackWeapon(type) {
+  switch(type) {
+    case 'crossbow': return `<g transform="translate(46,185) rotate(-15)">
+      <rect x="0" y="6" width="28" height="6" rx="2" fill="#5a3a1a"/>
+      <rect x="10" y="0" width="6" height="18" rx="2" fill="#4a3010"/>
+      <line x1="0" y1="9" x2="28" y2="9" stroke="#8a6020" stroke-width="1.5"/>
+      <rect x="22" y="5" width="8" height="8" rx="1" fill="#3a2a10"/>
+    </g>`;
+    case 'waterGun': return `<g transform="translate(44,180) rotate(-10)">
+      <rect x="0" y="4" width="32" height="12" rx="4" fill="#20a0e0"/>
+      <rect x="26" y="2" width="8" height="16" rx="3" fill="#40c0ff"/>
+      <circle cx="8" cy="10" r="5" fill="#1880b0"/>
+      <rect x="4" y="14" width="16" height="5" rx="2" fill="#20a0e0"/>
+    </g>`;
+    case 'none': return '';
+    default: // slingshot
+      return `<g transform="translate(48,178) rotate(-5)">
+        <path d="M4,28 Q0,14 8,4 Q12,0 16,4 Q24,14 20,28" fill="none" stroke="#8a6020" stroke-width="4" stroke-linecap="round"/>
+        <line x1="8" y1="4" x2="4" y2="28" stroke="#5a3a10" stroke-width="2.5"/>
+        <line x1="16" y1="4" x2="20" y2="28" stroke="#5a3a10" stroke-width="2.5"/>
+        <ellipse cx="12" cy="28" rx="8" ry="4" fill="#3a2a10"/>
+      </g>`;
+  }
+}
+
+function patchSVG(id, active) {
+  if (!active) return '';
+  const defs = {
+    lightning: `<path d="M12,2 L6,14 L11,14 L8,26 L18,10 L13,10z" fill="#f5c842" stroke="#c0a020" stroke-width="1"/>`,
+    clover:    `<circle cx="12" cy="8"  r="5" fill="#22c55e"/><circle cx="8"  cy="12" r="5" fill="#22c55e"/><circle cx="16" cy="12" r="5" fill="#22c55e"/><circle cx="12" cy="16" r="5" fill="#22c55e"/><rect x="11" y="10" width="2" height="12" fill="#16a34a"/>`,
+    biohazard: `<circle cx="12" cy="12" r="10" fill="none" stroke="#f97316" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="#f97316"/><path d="M12,9 A8,8,0,0,1,19,15 L17,16 A6,6,0,0,0,12,11z" fill="#f97316"/><path d="M12,9 A8,8,0,0,0,5,15 L7,16 A6,6,0,0,1,12,11z" fill="#f97316"/><path d="M8,16 L16,16 A6,6,0,0,1,12,22 A6,6,0,0,1,8,16z" fill="#f97316"/>`,
+    skull:     `<ellipse cx="12" cy="10" rx="8" ry="9" fill="white"/><rect x="6" y="16" width="12" height="6" rx="1" fill="white"/><circle cx="9"  cy="10" r="2.5" fill="#1a1a1a"/><circle cx="15" cy="10" r="2.5" fill="#1a1a1a"/><rect x="8"  cy="18" width="2" height="4" fill="#1a1a1a"/><rect x="11" cy="18" width="2" height="4" fill="#1a1a1a"/><rect x="14" cy="18" width="2" height="4" fill="#1a1a1a"/>`,
+    heart:     `<path d="M12,20 Q4,14 4,9 A5,5,0,0,1,12,7 A5,5,0,0,1,20,9 Q20,14 12,20z" fill="#ef4444"/><path d="M12,18 Q6,13 6,9 A4,4,0,0,1,10,7" stroke="#ff8888" stroke-width="1" fill="none" opacity=".5"/>`,
+    star:      `<path d="M12,2 L14.5,9 L22,9 L16,13.5 L18.5,21 L12,16.5 L5.5,21 L8,13.5 L2,9 L9.5,9z" fill="#f5c842" stroke="#c0a020" stroke-width="1"/>`,
+  };
+  return defs[id]||'';
+}
+
+function renderPatches(activePatches) {
+  if (!activePatches.length) return '';
+  // 6 patch positions on jacket
+  const positions = [
+    {x:76, y:180},{x:95, y:175},{x:114,y:180},
+    {x:76, y:200},{x:95, y:205},{x:114,y:200},
+  ];
+  return activePatches.map((id,i) => {
+    const p = positions[i%6];
+    if (!p) return '';
+    return `<g transform="translate(${p.x-12},${p.y-12}) scale(1.0)" opacity=".9">${patchSVG(id,true)}</g>`;
+  }).join('');
+}
+
+// POSE transforms
+function poseTransforms(pose) {
+  switch(pose) {
+    case 'combat': return {
+      rArm: 'rotate(-80,145,175)', lArm: 'rotate(20,55,175)',
+      rLeg: 'rotate(0)', lLeg: 'rotate(0)',
+      body: 'rotate(-5,100,220)',
+    };
+    case 'walk': return {
+      rArm: 'rotate(30,145,175)', lArm: 'rotate(-25,55,175)',
+      rLeg: 'rotate(-20,120,285)', lLeg: 'rotate(25,80,285)',
+      body: 'rotate(3,100,220)',
+    };
+    default: return {
+      rArm: 'rotate(-15,145,175)', lArm: 'rotate(10,55,175)',
+      rLeg: 'rotate(0)', lLeg: 'rotate(0)',
+      body: 'rotate(0)',
+    };
+  }
+}
+
+function buildAvatarSVG() {
+  const skin = cfg.skin;
+  const sk = shade(skin,-20);
+  const jc  = cfg.jacketColor;
+  const jd  = shade(jc,-30);
+  const jh  = shade(jc,30);
+  const pose = cfg.pose;
+  const pt = poseTransforms(pose);
+
+  const hairSVG   = renderHair(cfg.hairStyle, cfg.hairColor);
+  const eyesSVG   = renderEyes(cfg.eyeStyle, cfg.eyeColor);
+  const browsSVG  = renderBrows(cfg.browStyle);
+  const gogSVG    = renderGoggles(cfg.goggleFrame, cfg.goggleLens, cfg.goggleStrap);
+  const batSVG    = renderWeaponMelee(cfg.melee, pose);
+  const rangedSVG = renderBackpackWeapon(cfg.ranged);
+  const patchSVGs = renderPatches(cfg.patches);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 420" width="200" height="420">
+  <defs>
+    <filter id="shadow"><feDropShadow dx="2" dy="4" stdDeviation="4" flood-opacity=".4"/></filter>
+  </defs>
+
+  <!-- shadow on floor -->
+  <ellipse cx="105" cy="405" rx="42" ry="8" fill="rgba(0,0,0,0.35)"/>
+
+  <!-- BACKPACK (behind body) -->
+  <g id="backpack" transform="${pt.lArm}">
+    <rect x="46" y="175" width="34" height="44" rx="5" fill="#2a4a8a"/>
+    <rect x="50" y="179" width="26" height="36" rx="3" fill="#1a3a7a" opacity=".5"/>
+    <rect x="52" y="196" width="8" height="16" rx="2" fill="#1a3060"/>
+    <!-- water bottle -->
+    <rect x="54" y="172" width="8" height="16" rx="3" fill="#60a0d0"/>
+    <rect x="55" y="173" width="6" height="4" rx="1" fill="#80c0f0"/>
+    <!-- ranged weapon -->
+    ${rangedSVG}
+    <!-- straps -->
+    <line x1="58" y1="175" x2="70" y2="150" stroke="#1a3060" stroke-width="4" stroke-linecap="round"/>
+    <line x1="68" y1="175" x2="80" y2="150" stroke="#1a3060" stroke-width="4" stroke-linecap="round"/>
+    <!-- dino charm -->
+    <g transform="translate(78,218)">
+      <ellipse cx="0" cy="0" rx="5" ry="4" fill="#2a8a2a"/>
+      <circle cx="4" cy="-3" r="3" fill="#2a8a2a"/>
+      <path d="M-5,0 L-8,4 L-4,4" fill="#2a8a2a"/>
+      <circle cx="5" cy="-4" r="1" fill="#1a1a1a"/>
+    </g>
+  </g>
+
+  <!-- LEGS -->
+  <g id="pants">
+    <g transform="${pt.lLeg}">
+      <rect x="74" y="290" width="22" height="70" rx="5" fill="#3a3a5a"/>
+      <rect x="74" y="290" width="22" height="12" rx="3" fill="${shade('#3a3a5a',20)}"/>
+      <!-- left knee pad -->
+      <rect x="75" y="320" width="20" height="14" rx="3" fill="#2a2a4a"/>
+      <rect x="77" y="322" width="16" height="10" rx="2" fill="#4a4a6a"/>
+    </g>
+    <g transform="${pt.rLeg}">
+      <rect x="104" y="290" width="22" height="70" rx="5" fill="#3a3a5a"/>
+      <rect x="104" y="290" width="22" height="12" rx="3" fill="${shade('#3a3a5a',20)}"/>
+      <!-- right knee pad -->
+      <rect x="105" y="320" width="20" height="14" rx="3" fill="#2a2a4a"/>
+      <rect x="107" y="322" width="16" height="10" rx="2" fill="#4a4a6a"/>
+    </g>
+  </g>
+
+  <!-- BOOTS -->
+  <g id="boots">
+    <rect x="70"  y="354" width="28" height="22" rx="4" fill="#1a1a1a"/>
+    <rect x="100" y="354" width="28" height="22" rx="4" fill="#1a1a1a"/>
+    <!-- boot laces -->
+    <line x1="76" y1="358" x2="92"  y2="358" stroke="#4a4a4a" stroke-width="1.5"/>
+    <line x1="76" y1="362" x2="92"  y2="362" stroke="#4a4a4a" stroke-width="1.5"/>
+    <line x1="76" y1="366" x2="92"  y2="366" stroke="#4a4a4a" stroke-width="1.5"/>
+    <line x1="106" y1="358" x2="122" y2="358" stroke="#4a4a4a" stroke-width="1.5"/>
+    <line x1="106" y1="362" x2="122" y2="362" stroke="#4a4a4a" stroke-width="1.5"/>
+    <line x1="106" y1="366" x2="122" y2="366" stroke="#4a4a4a" stroke-width="1.5"/>
+    <!-- boot toe cap -->
+    <ellipse cx="85"  cy="373" rx="12" ry="5" fill="#111"/>
+    <ellipse cx="114" cy="373" rx="12" ry="5" fill="#111"/>
+  </g>
+
+  <!-- BODY BASE -->
+  <g id="body-base" transform="${pt.body}">
+    <!-- torso skin -->
+    <rect x="78" y="170" width="44" height="90" rx="6" fill="${skin}"/>
+  </g>
+
+  <!-- LEFT ARM (back) -->
+  <g id="left-arm" transform="${pt.lArm}">
+    <rect x="52" y="170" width="20" height="60" rx="8" fill="${jc}"/>
+    <rect x="52" y="218" width="20" height="14" rx="6" fill="${skin}"/>
+    <!-- glove -->
+    <rect x="52" y="226" width="20" height="8" rx="4" fill="#2a1a0a"/>
+    <line x1="58" y1="226" x2="58" y2="234" stroke="#3a2a10" stroke-width="1"/>
+    <line x1="64" y1="226" x2="64" y2="234" stroke="#3a2a10" stroke-width="1"/>
+  </g>
+
+  <!-- JACKET (over torso) -->
+  <g id="jacket" transform="${pt.body}">
+    <!-- main jacket body -->
+    <path d="M60,168 Q68,158 100,155 Q132,158 140,168 L136,285 Q100,295 64,285z"
+          fill="${jc}" stroke="${jd}" stroke-width="1.5"/>
+    <!-- zipper -->
+    <line x1="100" y1="158" x2="100" y2="285" stroke="${jd}" stroke-width="2"/>
+    <rect x="97" y="200" width="6" height="6" rx="1" fill="${jh}" opacity=".8"/>
+    <!-- collar -->
+    <path d="M82,158 Q100,148 118,158 L112,172 Q100,165 88,172z" fill="${shade(jc,-10)}"/>
+    <!-- jacket panels / seams -->
+    <line x1="80"  y1="165" x2="68"  y2="285" stroke="${jd}" stroke-width="1" opacity=".5"/>
+    <line x1="120" y1="165" x2="132" y2="285" stroke="${jd}" stroke-width="1" opacity=".5"/>
+    <!-- pocket left -->
+    <rect x="67"  y="220" width="18" height="14" rx="3" fill="${shade(jc,-15)}"/>
+    <line x1="67"  y1="227" x2="85" y2="227" stroke="${jd}" stroke-width="1"/>
+    <!-- pocket right -->
+    <rect x="115" y="220" width="18" height="14" rx="3" fill="${shade(jc,-15)}"/>
+    <line x1="115" y1="227" x2="133" y2="227" stroke="${jd}" stroke-width="1"/>
+    <!-- shoulder patches area -->
+    <rect x="62"  y="165" width="22" height="10" rx="2" fill="${shade(jc,-10)}"/>
+    <rect x="116" y="165" width="22" height="10" rx="2" fill="${shade(jc,-10)}"/>
+    <!-- jacket patches rendered here -->
+    ${patchSVGs}
+  </g>
+
+  <!-- RADIO on chest -->
+  <g id="radio" transform="${pt.body}">
+    <rect x="107" y="193" width="12" height="18" rx="2" fill="#1a2a1a"/>
+    <rect x="108" y="194" width="10" height="12" rx="1" fill="#0a180a"/>
+    <circle cx="113" cy="198" r="2" fill="#3dff7a" opacity=".8"/>
+    <line x1="113" y1="193" x2="113" y2="187" stroke="#4a4a4a" stroke-width="1.5"/>
+    <circle cx="113" cy="186" r="1.5" fill="#4a4a4a"/>
+  </g>
+
+  <!-- BELT GEAR -->
+  <g id="belt-gear" transform="${pt.body}">
+    <rect x="68" y="278" width="64" height="10" rx="3" fill="#2a1a0a"/>
+    <rect x="96" y="276" width="8" height="14" rx="2" fill="#4a3010"/>
+    <!-- torch (left) -->
+    <rect x="70" y="270" width="8" height="18" rx="3" fill="#5a4010"/>
+    <ellipse cx="74" cy="270" rx="4" ry="2" fill="#f0d060"/>
+    <!-- soup can (center) -->
+    <rect x="92" y="265" width="10" height="14" rx="2" fill="#8a7a60"/>
+    <line x1="92" y1="270" x2="102" y2="270" stroke="#7a6a50" stroke-width="1"/>
+    <line x1="92" y1="274" x2="102" y2="274" stroke="#7a6a50" stroke-width="1"/>
+    <!-- medkit (right) -->
+    <rect x="118" y="268" width="14" height="12" rx="2" fill="#cc2020"/>
+    <rect x="124" y="264" width="2" height="20" rx="1" fill="white"/>
+    <rect x="118" y="272" width="14" height="2" rx="1" fill="white"/>
+  </g>
+
+  <!-- RIGHT ARM + WEAPON -->
+  <g id="right-arm" transform="${pt.rArm}">
+    <rect x="128" y="170" width="20" height="60" rx="8" fill="${jc}"/>
+    <rect x="128" y="218" width="20" height="14" rx="6" fill="${skin}"/>
+    <!-- glove -->
+    <rect x="128" y="226" width="20" height="8" rx="4" fill="#2a1a0a"/>
+    <line x1="134" y1="226" x2="134" y2="234" stroke="#3a2a10" stroke-width="1"/>
+    <line x1="140" y1="226" x2="140" y2="234" stroke="#3a2a10" stroke-width="1"/>
+  </g>
+
+  <!-- BAT / MELEE -->
+  ${batSVG}
+
+  <!-- HEAD -->
+  <g id="head">
+    <ellipse cx="100" cy="105" rx="42" ry="46" fill="${skin}"/>
+    <!-- ear left -->
+    <ellipse cx="58" cy="108" rx="8" ry="10" fill="${skin}"/>
+    <ellipse cx="59" cy="108" rx="5" ry="7" fill="${sk}"/>
+    <!-- ear right -->
+    <ellipse cx="142" cy="108" rx="8" ry="10" fill="${skin}"/>
+    <ellipse cx="141" cy="108" rx="5" ry="7" fill="${sk}"/>
+    <!-- neck -->
+    <rect x="86" y="140" width="28" height="20" rx="4" fill="${skin}"/>
+  </g>
+
+  <!-- HAIR (behind head features) -->
+  <g id="hair">${hairSVG}</g>
+
+  <!-- FACE DETAILS -->
+  <g id="face-details">
+    <!-- freckles -->
+    <circle cx="80"  cy="116" r="1.5" fill="${sk}" opacity=".7"/>
+    <circle cx="86"  cy="120" r="1.5" fill="${sk}" opacity=".7"/>
+    <circle cx="78"  cy="121" r="1"   fill="${sk}" opacity=".5"/>
+    <circle cx="120" cy="116" r="1.5" fill="${sk}" opacity=".7"/>
+    <circle cx="114" cy="120" r="1.5" fill="${sk}" opacity=".7"/>
+    <circle cx="122" cy="121" r="1"   fill="${sk}" opacity=".5"/>
+    <!-- dirt smudge cheek -->
+    <ellipse cx="76" cy="118" rx="5" ry="3" fill="${shade(skin,-30)}" opacity=".3" transform="rotate(-15,76,118)"/>
+    <ellipse cx="124" cy="115" rx="4" ry="2" fill="${shade(skin,-30)}" opacity=".2" transform="rotate(10,124,115)"/>
+    <!-- nose -->
+    <ellipse cx="100" cy="118" rx="5" ry="4" fill="${sk}"/>
+    <circle cx="97" cy="120" r="2" fill="${shade(sk,-10)}"/>
+    <circle cx="103" cy="120" r="2" fill="${shade(sk,-10)}"/>
+    <!-- mouth -->
+    <path d="M90,130 Q100,138 110,130" stroke="${shade(skin,-40)}" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+    <!-- cheek blush -->
+    <ellipse cx="74"  cy="122" rx="8" ry="5" fill="${shade(skin,20)}" opacity=".25"/>
+    <ellipse cx="126" cy="122" rx="8" ry="5" fill="${shade(skin,20)}" opacity=".25"/>
+  </g>
+
+  <!-- EYEBROWS -->
+  <g id="eyebrows">${browsSVG}</g>
+
+  <!-- EYES -->
+  <g id="eyes">${eyesSVG}</g>
+
+  <!-- GOGGLES (on forehead) -->
+  <g id="goggles">${gogSVG}</g>
+
+</svg>`;
+}
+
+// ══════════════════════════════════════════════════════════════
+// WEAPON ICON SVGs (small, 60x80)
+// ══════════════════════════════════════════════════════════════
+function weaponIconSVG(type, category) {
+  const icons = {
+    bat: `<svg viewBox="0 0 60 80" width="52" height="68">
+      <rect x="24" y="14" width="12" height="28" rx="6" fill="#b08040"/>
+      <rect x="26" y="42" width="8" height="20" rx="3" fill="#8a6020"/>
+      <rect x="25" y="42" width="10" height="4" rx="1" fill="#1a1a1a" opacity=".7"/>
+      <text x="30" y="32" text-anchor="middle" font-size="4" fill="#3a2000" font-family="Arial" font-weight="bold" transform="rotate(90,30,30)">ZOM-B-GONE</text>
+      <circle cx="22" cy="20" r="2.5" fill="#8a8a8a"/>
+      <circle cx="38" cy="28" r="2.5" fill="#8a8a8a"/>
+    </svg>`,
+    crowbar: `<svg viewBox="0 0 60 80" width="52" height="68">
+      <rect x="28" y="8" width="8" height="52" rx="3" fill="#5a5a5a"/>
+      <path d="M32,8 Q44,-2 48,4 Q44,12 32,14" fill="#4a4a4a"/>
+      <path d="M28,60 Q18,58 20,50 Q28,48 36,54" fill="#4a4a4a"/>
+      <line x1="29" y1="12" x2="29" y2="60" stroke="#7a7a7a" stroke-width="1" opacity=".5"/>
+    </svg>`,
+    nailBoard: `<svg viewBox="0 0 60 80" width="52" height="68">
+      <rect x="20" y="12" width="20" height="56" rx="2" fill="#8a6020"/>
+      <circle cx="26" cy="20" r="3" fill="#aaaaaa"/>
+      <circle cx="34" cy="20" r="3" fill="#aaaaaa"/>
+      <circle cx="26" cy="34" r="3" fill="#aaaaaa"/>
+      <circle cx="34" cy="34" r="3" fill="#aaaaaa"/>
+      <circle cx="26" cy="48" r="3" fill="#aaaaaa"/>
+      <circle cx="34" cy="48" r="3" fill="#aaaaaa"/>
+    </svg>`,
+    axe: `<svg viewBox="0 0 60 80" width="52" height="68">
+      <rect x="27" y="24" width="6" height="48" rx="2" fill="#c83020"/>
+      <path d="M14,24 Q30,8 46,18 Q38,36 18,34z" fill="#7a7a7a"/>
+      <path d="M16,26 Q30,12 44,20" stroke="#aaaaaa" stroke-width="2" fill="none"/>
+    </svg>`,
+    wrench: `<svg viewBox="0 0 60 80" width="52" height="68">
+      <rect x="26" y="20" width="8" height="48" rx="3" fill="#5a5a60"/>
+      <path d="M20,20 Q30,8 40,20 Q36,32 30,30 Q24,28 20,20z" fill="#4a4a50"/>
+      <path d="M22,60 Q30,72 38,60 Q36,50 30,50 Q24,50 22,60z" fill="#4a4a50"/>
+    </svg>`,
+    slingshot: `<svg viewBox="0 0 60 80" width="52" height="68">
+      <path d="M20,60 Q14,36 24,14 Q30,4 36,14 Q46,36 40,60" fill="none" stroke="#8a6020" stroke-width="5" stroke-linecap="round"/>
+      <line x1="24" y1="14" x2="20" y2="60" stroke="#5a3a10" stroke-width="3"/>
+      <line x1="36" y1="14" x2="40" y2="60" stroke="#5a3a10" stroke-width="3"/>
+      <ellipse cx="30" cy="60" rx="10" ry="5" fill="#3a2a10"/>
+    </svg>`,
+    crossbow: `<svg viewBox="0 0 60 80" width="52" height="68">
+      <rect x="24" y="28" width="12" height="30" rx="2" fill="#4a3010"/>
+      <rect x="8"  y="32" width="44" height="8" rx="3" fill="#5a3a1a"/>
+      <rect x="40" y="28" width="12" height="16" rx="2" fill="#3a2808"/>
+      <line x1="8"  y1="36" x2="52" y2="36" stroke="#8a6020" stroke-width="2"/>
+    </svg>`,
+    waterGun: `<svg viewBox="0 0 60 80" width="52" height="68">
+      <rect x="8"  y="30" width="40" height="16" rx="5" fill="#20a0e0"/>
+      <rect x="36" y="24" width="12" height="22" rx="4" fill="#40c0ff"/>
+      <circle cx="18" cy="38" r="7" fill="#1880b0"/>
+      <rect x="14" y="46" width="22" height="8" rx="3" fill="#20a0e0"/>
+      <rect x="48" y="34" width="8" height="4" rx="2" fill="#60d0ff"/>
+    </svg>`,
+    none: `<svg viewBox="0 0 60 80" width="52" height="68">
+      <line x1="15" y1="15" x2="45" y2="65" stroke="#3a4a5a" stroke-width="4" stroke-linecap="round"/>
+      <line x1="45" y1="15" x2="15" y2="65" stroke="#3a4a5a" stroke-width="4" stroke-linecap="round"/>
+    </svg>`,
+  };
+  return icons[type] || icons.none;
+}
+
+// ══════════════════════════════════════════════════════════════
+// UI BUILDERS
+// ══════════════════════════════════════════════════════════════
+function buildSwatches(containerId, items, configKey, locked=[]) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  items.forEach((item,i) => {
+    const d = document.createElement('div');
+    d.className = 'swatch' + (cfg[configKey]===item.color?' active':'') + (item.locked?' locked':'');
+    d.style.background = item.color;
+    d.title = item.label || item.color;
+    if (!item.locked) d.addEventListener('click', () => {
+      cfg[configKey] = item.color;
+      document.querySelectorAll(`#${containerId} .swatch`).forEach(s=>s.classList.remove('active'));
+      d.classList.add('active');
+      render();
+    });
+    el.appendChild(d);
+  });
+}
+
+function buildStyleCards(containerId, items, configKey, iconFn) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  items.forEach(item => {
+    const id = item.id||item, label = item.label||item;
+    const d = document.createElement('div');
+    d.className = 'style-card' + (cfg[configKey]===id?' active':'');
+    d.innerHTML = (iconFn ? iconFn(id) : '') + `<div>${label}</div>`;
+    d.addEventListener('click', () => {
+      cfg[configKey] = id;
+      el.querySelectorAll('.style-card').forEach(s=>s.classList.remove('active'));
+      d.classList.add('active');
+      // reset hair style if gender switched
+      render();
+    });
+    el.appendChild(d);
+  });
+}
+
+function buildWeaponGrid(containerId, items, configKey) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  items.forEach(item => {
+    const d = document.createElement('div');
+    d.className = 'weapon-card' + (cfg[configKey]===item.id?' active':'');
+    d.innerHTML = weaponIconSVG(item.id) + `<div>${item.label}</div>`;
+    d.addEventListener('click', () => {
+      cfg[configKey] = item.id;
+      el.querySelectorAll('.weapon-card').forEach(s=>s.classList.remove('active'));
+      d.classList.add('active');
+      render();
+    });
+    el.appendChild(d);
+  });
+}
+
+function buildPatchGrid() {
+  const el = document.getElementById('patchGrid');
+  el.innerHTML = '';
+  PATCHES.forEach(p => {
+    const d = document.createElement('div');
+    const on = cfg.patches.includes(p.id);
+    d.className = 'patch-card' + (on?' active':'');
+    d.innerHTML = `<div style="font-size:20px">${p.emoji}</div><div style="font-size:6px;margin-top:3px">${p.label}</div>`;
+    d.addEventListener('click', () => {
+      const idx = cfg.patches.indexOf(p.id);
+      if (idx>=0) cfg.patches.splice(idx,1); else if(cfg.patches.length<6) cfg.patches.push(p.id);
+      d.classList.toggle('active', cfg.patches.includes(p.id));
+      render();
+    });
+    el.appendChild(d);
+  });
+}
+
+function buildHairStyles() {
+  const items = cfg.gender==='girl' ? GIRL_HAIR : BOY_HAIR;
+  // default style if current doesn't exist in gender
+  const ids = items.map(i=>i.id);
+  if (!ids.includes(cfg.hairStyle)) cfg.hairStyle = items[0].id;
+  buildStyleCards('hairStyles', items, 'hairStyle', null);
+}
+
+function buildAll() {
+  buildSwatches('skinSwatches', SKIN_TONES, 'skin');
+  buildSwatches('eyeSwatches', EYE_COLORS, 'eyeColor');
+  buildStyleCards('eyeStyles', EYE_STYLES, 'eyeStyle', null);
+  buildStyleCards('browStyles', BROW_STYLES, 'browStyle', null);
+  buildSwatches('hairSwatches', HAIR_COLORS, 'hairColor');
+  buildHairStyles();
+  buildSwatches('jacketSwatches', JACKET_COLORS, 'jacketColor');
+  buildSwatches('goggleLensSwatches', GOGGLE_LENS_COLORS, 'goggleLens');
+  buildStyleCards('goggleFrameStyles', GOGGLE_FRAMES, 'goggleFrame', null);
+  buildStyleCards('goggleStrapStyles', GOGGLE_STRAPS, 'goggleStrap', null);
+  buildPatchGrid();
+  buildWeaponGrid('meleeWeapons', MELEE_WEAPONS, 'melee');
+  buildWeaponGrid('rangedWeapons', RANGED_WEAPONS, 'ranged');
+}
+
+// ══════════════════════════════════════════════════════════════
+// RENDER
+// ══════════════════════════════════════════════════════════════
+function render() {
+  document.getElementById('avatarWrap').innerHTML = buildAvatarSVG();
+}
+
+// ══════════════════════════════════════════════════════════════
+// EVENTS
+// ══════════════════════════════════════════════════════════════
+// Gender
+document.querySelectorAll('.gender-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    cfg.gender = btn.dataset.gender;
+    document.querySelectorAll('.gender-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    buildHairStyles();
+    render();
+  });
+});
+
+// Tabs
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-'+tab.dataset.tab).classList.add('active');
+  });
+});
+
+// Pose
+document.querySelectorAll('.pose-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    cfg.pose = btn.dataset.pose;
+    document.querySelectorAll('.pose-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    render();
+  });
+});
+
+// Spin
+document.getElementById('spinBtn').addEventListener('click', () => {
+  const stage = document.getElementById('avatarStage');
+  stage.classList.add('spinning');
+  setTimeout(() => stage.classList.remove('spinning'), 1600);
+});
+
+// Parallax tilt
+const stage = document.getElementById('avatarStage');
+stage.addEventListener('mousemove', e => {
+  const r = stage.getBoundingClientRect();
+  const mx = ((e.clientX - r.left) / r.width - 0.5) * 2;
+  const my = ((e.clientY - r.top)  / r.height - 0.5) * 2;
+  stage.style.setProperty('--mx', mx);
+  stage.style.setProperty('--my', my);
+});
+stage.addEventListener('mouseleave', () => {
+  stage.style.setProperty('--mx', 0);
+  stage.style.setProperty('--my', 0);
+});
+
+// Name plate
+document.getElementById('namePlate').addEventListener('input', e => {
+  cfg.name = e.target.value;
+});
+
+// Toast helper
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+// Save
+document.getElementById('saveBtn').addEventListener('click', () => {
+  try {
+    localStorage.setItem('zombie-avatar', JSON.stringify(cfg));
+    toast('✓ Survivor Saved!');
+  } catch { toast('✗ Save failed'); }
+});
+
+// Share / copy code
+document.getElementById('shareBtn').addEventListener('click', () => {
+  const code = btoa(JSON.stringify(cfg));
+  const url = `${location.origin}${location.pathname}?avatar=${code}`;
+  navigator.clipboard.writeText(url).then(() => toast('✓ Code copied! Share with friends'));
+});
+
+// ══════════════════════════════════════════════════════════════
+// INIT — restore from URL param if present
+// ══════════════════════════════════════════════════════════════
+(function init() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get('avatar');
+  if (code) {
+    try {
+      const saved = JSON.parse(atob(code));
+      Object.assign(cfg, saved);
+    } catch {}
+  } else {
+    // try loading saved avatar from localStorage
+    try {
+      const saved = localStorage.getItem('zombie-avatar');
+      if (saved) {
+        Object.assign(cfg, JSON.parse(saved));
+        document.getElementById('namePlate').value = cfg.name || 'KID SURVIVOR';
+        buildAll(); render();
+      }
+    } catch {}
+  }
+  // sync gender button
+  document.querySelectorAll('.gender-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.gender===cfg.gender);
+  });
+  document.getElementById('namePlate').value = cfg.name || 'KID SURVIVOR';
+  buildAll();
+  render();
+})();
+</script>
+</body>
+</html>

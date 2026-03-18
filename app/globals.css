@@ -1,0 +1,275 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ─── Character sprite idle animation ──────────────────────────────────────── */
+
+@keyframes char-idle {
+  0%,  100% { transform: translateY(0px)   scale(1);     }
+  50%        { transform: translateY(-2px)  scale(1.005); }
+}
+
+.char-idle {
+  animation: char-idle 2.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* ─── Game Settings sliders ─────────────────────────────────────────────────── */
+
+.game-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+.game-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #020617;
+  cursor: pointer;
+}
+.game-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #020617;
+  cursor: pointer;
+}
+.game-slider-green { background: #1e293b; }
+.game-slider-green::-webkit-slider-thumb { background: #39ff14; }
+.game-slider-green::-moz-range-thumb     { background: #39ff14; }
+
+.game-slider-blue  { background: #1e293b; }
+.game-slider-blue::-webkit-slider-thumb  { background: #00d4ff; }
+.game-slider-blue::-moz-range-thumb      { background: #00d4ff; }
+
+/* ─── Zombie window animation ───────────────────────────────────────────────── */
+
+@keyframes zombie-sway {
+  0%,  100% { transform: translateX(0px)  rotate(0deg);   }
+  30%        { transform: translateX(-2px) rotate(-4deg);  }
+  70%        { transform: translateX(2px)  rotate(4deg);   }
+}
+
+.zombie-sway {
+  animation: zombie-sway 2.8s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* Respect the user's motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .char-idle   { animation: none; }
+  .zombie-sway { animation: none; }
+  .idle-float  { animation: none; }
+  .btn-pulse   { animation: none; }
+}
+
+/* ─── Game design system tokens ─────────────────────────────────────────────── */
+
+:root {
+  --accent-green:  #3dff7a;
+  --accent-orange: #ff6b00;
+  --danger-red:    #ff3030;
+  --gold:          #f5c842;
+  --bg-deep:       #060a06;
+  --bg-panel:      #0d1610;
+  --bg-surface:    #121c12;
+  --border-subtle: rgba(61,255,122,0.12);
+  --text-primary:  #e8f5e8;
+  --text-muted:    #4a6a4a;
+  --font-display:  'Bungee', sans-serif;
+  --font-body:     'Barlow Condensed', sans-serif;
+  --font-mono:     'VT323', monospace;
+}
+
+/* ─── Polish keyframes ───────────────────────────────────────────────────────── */
+
+@keyframes idle-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-7px); }
+}
+
+@keyframes btn-pulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(255,107,0,0.45); }
+  50%       { box-shadow: 0 0 28px rgba(255,107,0,0.85), 0 0 52px rgba(255,107,0,0.3); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes green-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(61,255,122,0.3); }
+  50%       { box-shadow: 0 0 24px rgba(61,255,122,0.7), 0 0 44px rgba(61,255,122,0.25); }
+}
+
+.idle-float  { animation: idle-float 3.2s ease-in-out infinite; will-change: transform; }
+.btn-pulse   { animation: btn-pulse  2.4s ease-in-out infinite; }
+.green-pulse { animation: green-pulse 2.2s ease-in-out infinite; }
+
+.shimmer-epic {
+  background: linear-gradient(90deg, #a855f7 0%, #c084fc 40%, #e879f9 50%, #c084fc 60%, #a855f7 100%);
+  background-size: 200% auto;
+  animation: shimmer 2.5s linear infinite;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* ─── Chore Quest design tokens ─────────────────────────────────────────────── */
+:root {
+  --green:        #3dff7a;
+  --orange:       #ff6b00;
+  --gold:         #f5c842;
+  --red:          #ff3030;
+  --red-soft:     #ff4a4a;
+  --blue:         #60b0ff;
+  --bg:           #060a06;
+  --bg-panel:     #0d1610;
+  --bg-surface:   #111e12;
+  --bg-card:      #0d1810;
+  --border:       #1a3018;
+  --border-bright:#2a5028;
+  --text:         #c8e0c0;
+  --text-muted:   #4a7a40;
+  --text-dim:     #2a4a28;
+  --font-display: 'Bungee', sans-serif;
+  --font-body:    'Barlow Condensed', sans-serif;
+  --font-mono:    'VT323', monospace;
+  --radius:       10px;
+  --radius-sm:    6px;
+}
+
+/* ─── Interaction animations ─────────────────────────────────────────────────── */
+
+@keyframes scale-pop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes pts-float {
+  0%   { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-40px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 rgba(61,255,122,0); }
+  50%       { box-shadow: 0 0 16px rgba(61,255,122,0.4); }
+}
+
+@keyframes pulse-glow-orange {
+  0%, 100% { box-shadow: 0 0 0 rgba(255,107,0,0); }
+  50%       { box-shadow: 0 0 16px rgba(255,107,0,0.4); }
+}
+
+@keyframes shimmer-sweep {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+
+@keyframes streak-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(255,107,0,0); }
+  50%       { box-shadow: 0 0 8px rgba(255,107,0,0.4); }
+}
+
+.anim-scale-pop  { animation: scale-pop  0.25s ease-out; }
+.anim-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
+.anim-streak-pulse { animation: streak-pulse 2s ease-in-out infinite; }
+.anim-shimmer {
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+  background-size: 200% auto;
+  animation: shimmer-sweep 1.5s ease 0s infinite;
+  animation-play-state: paused;
+}
+.anim-shimmer:hover { animation-play-state: running; }
+
+/* Press/active feedback on all interactive elements */
+button:active, [role="button"]:active {
+  transform: scale(0.97);
+  transition: transform 0.1s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-scale-pop, .anim-pulse-glow, .anim-streak-pulse,
+  .idle-float, .btn-pulse, .green-pulse { animation: none; }
+}
+
+/* ─── Locked card shimmer ───────────────────────────────────────────────────── */
+@keyframes locked-shimmer {
+  0%   { opacity: 0; background-position: -200% center; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { opacity: 0; background-position: 200% center; }
+}
+
+.locked-card-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.07) 50%, transparent 100%);
+  background-size: 200% auto;
+  animation: locked-shimmer 1.5s ease 4s infinite;
+  pointer-events: none;
+}

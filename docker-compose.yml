@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+  app:
+    build: .
+    container_name: chore-quest-app
+    restart: unless-stopped
+    # Loads all vars from .env into the container environment
+    env_file: .env
+    environment:
+      # Override DATABASE_URL to use the internal Docker network (db:5432),
+      # not the host-mapped port (localhost:5436) that .env uses for local dev
+      DATABASE_URL: postgresql://chorequest:${POSTGRES_PASSWORD}@db:5432/chorequest
+    ports:
+      - "3002:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+
+  db:
+    image: postgres:16-alpine
+    container_name: chore-quest-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: chorequest
+      POSTGRES_USER: chorequest
+      # ${POSTGRES_PASSWORD} is interpolated from .env at compose-file parse time
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      # Bind to 127.0.0.1 only ??? DB is not accessible from other machines on the network
+      - "127.0.0.1:5436:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chorequest -d chorequest"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - internal
+
+networks:
+  internal:
+
+volumes:
+  postgres_data:
