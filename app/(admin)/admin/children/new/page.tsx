@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChildAppearanceFields } from '@/components/admin/child-appearance-fields'
+import { ThemeSelector } from '@/components/admin/ThemeSelector'
 
 type FieldErrors = Partial<Record<'name' | 'avatarUrl' | 'pin' | 'confirmPin' | 'gender', string>>
 
@@ -13,8 +14,17 @@ export default function NewChildPage() {
   const [gender, setGender] = useState<'boy' | 'girl' | ''>('')
   const [skinTone, setSkinTone] = useState('')
   const [hairStyle, setHairStyle] = useState('')
+
+  function handleGenderChange(g: 'boy' | 'girl' | '') {
+    setGender(g)
+    if (!hairStyle) {
+      if (g === 'boy') setHairStyle('Short')
+      else if (g === 'girl') setHairStyle('Long')
+    }
+  }
   const [hairColor, setHairColor] = useState('')
   const [eyeColor, setEyeColor] = useState('')
+  const [visualTheme, setVisualTheme] = useState('zombie')
   const [pin, setPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
@@ -33,10 +43,11 @@ export default function NewChildPage() {
       body: JSON.stringify({
         name, pin, confirmPin,
         gender: gender || undefined,
-        hairStyle: hairStyle || undefined,
+        hairStyle: hairStyle || (gender === 'boy' ? 'Short' : gender === 'girl' ? 'Long' : undefined),
         hairColor: hairColor || undefined,
         skinTone: skinTone || undefined,
         eyeColor: eyeColor || undefined,
+        visualTheme,
       }),
     })
 
@@ -80,12 +91,17 @@ export default function NewChildPage() {
           hairStyle={hairStyle}
           hairColor={hairColor}
           eyeColor={eyeColor}
-          onGenderChange={setGender}
+          onGenderChange={handleGenderChange}
           onSkinToneChange={setSkinTone}
           onHairStyleChange={setHairStyle}
           onHairColorChange={setHairColor}
           onEyeColorChange={setEyeColor}
         />
+
+        {/* Adventure World */}
+        <div className="bg-[#1e293b] border border-[#334155] rounded-xl p-5">
+          <ThemeSelector value={visualTheme} onChange={setVisualTheme} />
+        </div>
 
         {/* Survivor Identity */}
         <div className="bg-[#1e293b] border border-[#334155] rounded-xl p-5 space-y-3">

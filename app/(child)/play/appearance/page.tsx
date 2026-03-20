@@ -10,8 +10,8 @@ export default async function AppearancePage() {
   const [childProfile, ownedInventory] = await Promise.all([
     (prisma.childProfile.findUnique as any)({
       where: { userId: session.userId },
-      select: { hairStyle: true, hairColor: true, skinTone: true, eyeColor: true, gender: true },
-    }) as Promise<{ hairStyle: string | null; hairColor: string | null; skinTone: string | null; eyeColor: string | null; gender: string | null } | null>,
+      select: { hairStyle: true, hairColor: true, skinTone: true, eyeColor: true, gender: true, visualTheme: true },
+    }) as Promise<{ hairStyle: string | null; hairColor: string | null; skinTone: string | null; eyeColor: string | null; gender: string | null; visualTheme: string | null } | null>,
     prisma.userInventory.findMany({
       where: { childUserId: session.userId },
       include: {

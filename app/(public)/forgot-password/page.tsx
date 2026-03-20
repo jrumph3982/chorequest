@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { FeedbackButton } from '@/components/FeedbackButton'
 
 export default function ForgotPasswordPage() {
   const [email,   setEmail]   = useState('')
@@ -114,6 +115,7 @@ export default function ForgotPasswordPage() {
           </form>
         )}
       </div>
+      <FeedbackButton />
     </main>
   )
 }

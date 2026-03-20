@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { DetailedCharacter } from '@/components/child/DetailedCharacter'
+import { FeedbackButton } from '@/components/FeedbackButton'
 
 type Step = 'code' | 'pick' | 'pin'
 
@@ -157,7 +158,7 @@ export default function ChildLoginPage() {
       )
     }
 
-    router.push('/dashboard')
+    window.location.href = '/dashboard'
   }
 
   const cardCls = 'rounded-2xl border p-6 space-y-5'
@@ -414,6 +415,7 @@ export default function ChildLoginPage() {
           </Link>
         </p>
       </div>
+      <FeedbackButton />
     </main>
   )
 }

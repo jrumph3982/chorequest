@@ -21,7 +21,7 @@ export default async function EditChildPage({ params }: { params: Promise<{ id: 
       avatarUrl: true,
       level: true,
       childProfile: {
-        select: { hairStyle: true, hairColor: true, skinTone: true, eyeColor: true, gender: true },
+        select: { hairStyle: true, hairColor: true, skinTone: true, eyeColor: true, gender: true, visualTheme: true },
       },
     },
   })

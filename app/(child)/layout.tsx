@@ -9,9 +9,11 @@ import { xpProgressInLevel } from '@/lib/game/leveling'
 import { calcCurrentThreat, getOrCreateBaseState } from '@/lib/game/base'
 import { getActiveEvents, applyEventThreatBump } from '@/lib/game/events'
 import { AvatarProvider } from '@/lib/context/AvatarContext'
+import { ThemeProvider } from '@/lib/context/ThemeContext'
 import { AchievementUnlockOverlay } from '@/components/child/AchievementUnlockOverlay'
 import { OfflineIndicator } from '@/components/child/OfflineIndicator'
 import { RaidCinematicLoader } from '@/components/child/RaidCinematic'
+import { FeedbackButton } from '@/components/FeedbackButton'
 
 export default async function ChildLayout({
   children,
@@ -39,7 +41,7 @@ export default async function ChildLayout({
       select: {
         gender: true, hairStyle: true, hairColor: true, skinTone: true, eyeColor: true,
         eyeStyle: true, freckles: true, jacketColor: true, pantsColor: true,
-        goggleColor: true, sigItem: true,
+        goggleColor: true, sigItem: true, visualTheme: true,
       },
     }),
     getOrCreateBaseState(session.userId),
@@ -64,9 +66,11 @@ export default async function ChildLayout({
   const threat = applyEventThreatBump(baseThreat, activeEvents)
 
   return (
+    <ThemeProvider themeId={(childProfile as any)?.visualTheme ?? 'zombie'}>
     <AvatarProvider initialProfile={childProfile ?? {}}>
       <OfflineIndicator />
       <AchievementUnlockOverlay />
+      <FeedbackButton />
       <RaidCinematicLoader />
       <GameWrapper>
         {/* Desktop sidebar — hidden on mobile, flex-col on lg+ */}
@@ -95,5 +99,6 @@ export default async function ChildLayout({
         </div>
       </GameWrapper>
     </AvatarProvider>
+    </ThemeProvider>
   )
 }

@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth/session'
 import { prisma } from '@/lib/db'
 import { MarkPaidButton } from '@/components/admin/mark-paid-button'
 import { AllowanceRatioEditor } from '@/components/admin/allowance-ratio-editor'
+import { EditBalanceButton } from '@/components/admin/EditBalanceButton'
 import { getOrCreateSettings } from '@/lib/game/settings'
 
 function fmtDate(d: Date) {
@@ -82,9 +83,12 @@ export default async function AllowancePage() {
                     <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold mb-0.5">
                       Total Owed
                     </p>
-                    <p className="text-2xl font-bold text-[#22c55e]">
-                      ${(child.allowanceBalanceCents / 100).toFixed(2)}
-                    </p>
+                    <div className="flex items-center justify-end gap-1">
+                      <p className="text-2xl font-bold text-[#22c55e]">
+                        ${(child.allowanceBalanceCents / 100).toFixed(2)}
+                      </p>
+                      <EditBalanceButton childId={child.id} currentCents={child.allowanceBalanceCents} />
+                    </div>
                   </div>
                 </div>
 

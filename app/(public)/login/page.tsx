@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { FeedbackButton } from '@/components/FeedbackButton'
 
 type Step = 'tiles' | 'adult-form'
 
@@ -32,7 +33,7 @@ export default function LoginPage() {
       return
     }
 
-    router.push(data.role === 'adult' ? '/admin' : '/play')
+    window.location.href = data.role === 'adult' ? '/admin' : '/play'
   }
 
   // ── Tile selection ────────────────────────────────────────────────────────
@@ -48,22 +49,6 @@ export default function LoginPage() {
           zIndex: 0,
         }} />
 
-        {/* Boarded window decoration (top-right) */}
-        <svg className="pointer-events-none absolute top-6 right-6 opacity-10" width="80" height="70" viewBox="0 0 80 70">
-          <rect x="0" y="0" width="80" height="70" rx="3" fill="none" stroke="#3dff7a" strokeWidth="2"/>
-          <line x1="0"  y1="0"  x2="80" y2="70" stroke="#3dff7a" strokeWidth="1.5"/>
-          <line x1="80" y1="0"  x2="0"  y2="70" stroke="#3dff7a" strokeWidth="1.5"/>
-          <rect x="8"  y="8"  width="8" height="8" rx="1" fill="#3dff7a" opacity="0.5"/>
-          <rect x="64" y="8"  width="8" height="8" rx="1" fill="#3dff7a" opacity="0.5"/>
-          <rect x="8"  y="54" width="8" height="8" rx="1" fill="#3dff7a" opacity="0.5"/>
-          <rect x="64" y="54" width="8" height="8" rx="1" fill="#3dff7a" opacity="0.5"/>
-        </svg>
-        {/* Left window */}
-        <svg className="pointer-events-none absolute top-8 left-6 opacity-8" width="60" height="52" viewBox="0 0 60 52">
-          <rect x="0" y="0" width="60" height="52" rx="3" fill="none" stroke="#f29d26" strokeWidth="1.5"/>
-          <line x1="0"  y1="0"  x2="60" y2="52" stroke="#f29d26" strokeWidth="1"/>
-          <line x1="60" y1="0"  x2="0"  y2="52" stroke="#f29d26" strokeWidth="1"/>
-        </svg>
 
         <div className="w-full max-w-sm relative z-10">
 
@@ -134,8 +119,14 @@ export default function LoginPage() {
               Create a parent account →
             </Link>
           </p>
+          <p className="text-center mt-3">
+            <Link href="/support" className="text-[10px] text-slate-800 hover:text-slate-600 transition-colors">
+              🍺 Buy Me a Drink
+            </Link>
+          </p>
 
         </div>
+        <FeedbackButton />
       </main>
     )
   }
@@ -212,6 +203,7 @@ export default function LoginPage() {
           ← Back to selection
         </button>
       </div>
+      <FeedbackButton />
     </main>
   )
 }

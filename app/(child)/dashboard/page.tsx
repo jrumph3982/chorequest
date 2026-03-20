@@ -733,6 +733,31 @@ export default async function DashboardPage() {
       )}
 
       </div>{/* end px-4 wrapper */}
+
+      {/* Beta notice */}
+      <div
+        style={{
+          margin: '8px 16px 0',
+          padding: '10px 14px',
+          borderRadius: 10,
+          background: 'rgba(245,200,66,0.05)',
+          border: '1px solid rgba(245,200,66,0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}
+      >
+        <span style={{ fontSize: 16, flexShrink: 0 }}>🚧</span>
+        <div>
+          <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#a08020', textTransform: 'uppercase', letterSpacing: 1 }}>
+            Beta — App Under Development
+          </p>
+          <p style={{ margin: '2px 0 0', fontSize: 10, color: '#5a5020', lineHeight: 1.4 }}>
+            Found a bug or have feedback? Use the <span style={{ color: '#f5c842' }}>Report Bug</span> button (bottom-right).
+          </p>
+        </div>
+      </div>
+
     </main>
   )
 }

@@ -3,6 +3,7 @@ import { getSession } from '@/lib/auth/session'
 import { prisma } from '@/lib/db'
 import { DetailedCharacter } from '@/components/child/DetailedCharacter'
 import { RemoveChildButton } from '@/components/admin/remove-child-button'
+import { getTheme } from '@/lib/constants/themes'
 
 export default async function ChildrenPage() {
   const session = await getSession()
@@ -23,7 +24,7 @@ export default async function ChildrenPage() {
         select: {
           gender: true, hairStyle: true, hairColor: true, skinTone: true, eyeColor: true,
           eyeStyle: true, freckles: true, jacketColor: true, pantsColor: true,
-          goggleColor: true, sigItem: true,
+          goggleColor: true, sigItem: true, visualTheme: true,
         } as any,
       },
     },
@@ -81,7 +82,17 @@ export default async function ChildrenPage() {
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-slate-100 text-sm">{child.name}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-slate-100 text-sm">{child.name}</p>
+                  {(() => {
+                    const t = getTheme((child.childProfile as any)?.visualTheme)
+                    return (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-700 text-slate-300">
+                        {t.icon} {t.name}
+                      </span>
+                    )
+                  })()}
+                </div>
                 <div className="flex items-center gap-3 mt-0.5 flex-wrap">
                   <span className="text-xs text-slate-400">
                     Level <span className="font-bold text-slate-200">{child.level}</span>

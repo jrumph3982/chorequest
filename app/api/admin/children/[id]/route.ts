@@ -30,7 +30,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ errors }, { status: 400 })
   }
 
-  const { name, avatarUrl, gender, hairStyle, hairColor, skinTone, eyeColor } = result.data
+  const { name, avatarUrl, gender, hairStyle, hairColor, skinTone, eyeColor, visualTheme } = result.data
 
   const userData = {
     ...(name !== undefined && { name }),
@@ -43,6 +43,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     ...(hairColor !== undefined && { hairColor }),
     ...(skinTone !== undefined && { skinTone }),
     ...(eyeColor !== undefined && { eyeColor }),
+    ...(visualTheme !== undefined && { visualTheme }),
   }
 
   const ops = []

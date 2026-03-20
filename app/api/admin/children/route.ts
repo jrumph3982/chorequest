@@ -5,16 +5,16 @@ import { hashPassword } from '@/lib/auth/password'
 import { createChildSchema } from '@/lib/validation/children'
 import { StoryProgressStatus } from '@prisma/client'
 import { logSecurityEvent, SECURITY_EVENT } from '@/lib/audit/security'
+import { getOrCreateSettings } from '@/lib/game/settings'
 
 // Universal starter gear slugs — always granted to every new child.
-// These items are created by migration 20260312000004_add_shop_items.
 const UNIVERSAL_STARTER_SLUGS = [
   'starter-cap',
   'starter-jacket',
-  'starter-pants',
+  'cargo-pants',
   'starter-sneakers',
-  'starter-backpack',
-  'starter-trinket',
+  'basic-backpack',
+  'starter-belt',
 ]
 
 export async function GET() {
@@ -56,37 +56,52 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ errors }, { status: 400 })
   }
 
-  const { name, avatarUrl, pin, gender, hairStyle, hairColor, skinTone, eyeColor } = result.data
+  const { name, avatarUrl, pin, gender, hairStyle, hairColor, skinTone, eyeColor, eyeStyle, freckles, jacketColor, pantsColor, goggleColor, sigItem, visualTheme } = result.data
 
-  const [pinHash, theme, chapters, starterItems] = await Promise.all([
+  const [pinHash, theme, chapters, starterItems, settings] = await Promise.all([
     hashPassword(pin),
     prisma.theme.findFirst(),
     prisma.storyChapter.findMany({ orderBy: { chapterNumber: 'asc' } }),
-    // Look up universal starter items created by migration
     prisma.inventoryItem.findMany({
       where: { slug: { in: UNIVERSAL_STARTER_SLUGS } },
       select: { id: true },
     }),
+    getOrCreateSettings(householdId),
   ])
+
+  const startingBalance = settings.startingAllowanceBalanceCents ?? 0
 
   const user = await prisma.$transaction(async (tx) => {
     const user = await tx.user.create({
-      data: { name, avatarUrl: avatarUrl ?? '🧒', pinHash, role: 'child' },
+      data: {
+        name,
+        avatarUrl: avatarUrl ?? '🧒',
+        pinHash,
+        role: 'child',
+        allowanceBalanceCents: startingBalance,
+      },
     })
 
     await tx.childProfile.create({
       data: {
-        userId: user.id,
+        userId:      user.id,
         householdId,
-        themeId: theme?.id,
+        themeId:     theme?.id,
         weeklyPointGoal: 50,
         streakCount: 0,
         currentStoryChapter: 1,
-        gender:    gender    ?? null,
-        hairStyle: hairStyle ?? null,
-        hairColor: hairColor ?? null,
-        skinTone:  skinTone  ?? null,
-        eyeColor:  eyeColor  ?? null,
+        gender:      gender      ?? null,
+        hairStyle:   hairStyle   ?? null,
+        hairColor:   hairColor   ?? null,
+        skinTone:    skinTone    ?? null,
+        eyeColor:    eyeColor    ?? null,
+        eyeStyle:    eyeStyle    ?? null,
+        freckles:    freckles    ?? false,
+        jacketColor: jacketColor ?? null,
+        pantsColor:  pantsColor  ?? null,
+        goggleColor: goggleColor ?? null,
+        sigItem:     sigItem     ?? null,
+        visualTheme: visualTheme ?? 'zombie',
       } as any,
     })
 
@@ -97,25 +112,24 @@ export async function POST(request: NextRequest) {
     if (chapters.length > 0) {
       await tx.userStoryProgress.create({
         data: {
-          childUserId: user.id,
+          childUserId:    user.id,
           storyChapterId: chapters[0].id,
           householdId,
-          status: StoryProgressStatus.unlocked,
+          status:         StoryProgressStatus.unlocked,
         },
       })
       if (chapters.length > 1) {
         await tx.userStoryProgress.createMany({
           data: chapters.slice(1).map((ch) => ({
-            childUserId: user.id,
+            childUserId:    user.id,
             storyChapterId: ch.id,
             householdId,
-            status: StoryProgressStatus.locked,
+            status:         StoryProgressStatus.locked,
           })),
         })
       }
     }
 
-    // Grant starter gear
     if (starterItems.length > 0) {
       await tx.userInventory.createMany({
         data: starterItems.map((item) => ({
@@ -140,5 +154,5 @@ export async function POST(request: NextRequest) {
     metadata:     { childName: user.name },
   })
 
-  return NextResponse.json({ id: user.id }, { status: 201 })
+  return NextResponse.json({ id: user.id, name: user.name }, { status: 201 })
 }

@@ -17,8 +17,9 @@ const survivalSettingsSchema = z.object({
   coinMultiplier:          z.number().min(0.5).max(3).optional(),
   nightRaidFrequency:      z.enum(['daily', 'weekly', 'custom']).optional(),
   rewardDropRate:              z.enum(['low', 'normal', 'high']).optional(),
-  allowancePointsPerDollar:    z.number().int().min(1).max(10000).optional(),
-  weeklyAllowanceCap:          z.number().int().min(0).nullable().optional(),
+  allowancePointsPerDollar:        z.number().int().min(1).max(10000).optional(),
+  weeklyAllowanceCap:              z.number().int().min(0).nullable().optional(),
+  startingAllowanceBalanceCents:   z.number().int().min(0).max(100000).optional(),
 })
 
 export async function GET() {
