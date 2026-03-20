@@ -83,8 +83,9 @@ model Household {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  onboardingComplete Boolean @default(false)
-  onboardingStep     Int     @default(0)
+  onboardingComplete       Boolean @default(false)
+  onboardingStep           Int     @default(0)
+  globalLeaderboardEnabled Boolean @default(false)
 
   members           HouseholdMember[]
   chores            Chore[]
@@ -192,6 +193,9 @@ model ChildProfile {
   pantsColor  String?
   goggleColor String?
   sigItem     String?
+
+  // Visual theme chosen by child / set by parent  zombie | castle | racing
+  visualTheme String  @default("zombie")
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   theme     Theme?     @relation(fields: [themeId], references: [id])
@@ -571,12 +575,13 @@ model SurvivalSettings {
   // Game Settings UI fields
   xpMultiplier            Float    @default(1.5)
   coinMultiplier          Float    @default(1.0)
-  nightRaidFrequency      String   @default("weekly") // daily | weekly | custom
+  nightRaidFrequency      String   @default("daily")  // daily | weekly | custom
   rewardDropRate          String   @default("normal") // low | normal | high
   // Allowance settings
-  xpConversionRate            Int      @default(100)   // XP points per $1 (100 XP = $1)
-  weeklyAllowanceCap          Int?                     // max cents per week; null = no cap
-  allowancePointsPerDollar    Int      @default(100)   // chore points needed to earn $1 allowance
+  xpConversionRate                Int      @default(100)   // XP points per $1 (100 XP = $1)
+  weeklyAllowanceCap              Int?                     // max cents per week; null = no cap
+  allowancePointsPerDollar        Int      @default(100)   // chore points needed to earn $1 allowance
+  startingAllowanceBalanceCents   Int      @default(0)     // initial balance given to each new child
   updatedAt                   DateTime @updatedAt
 
   household Household? @relation(fields: [householdId], references: [id])

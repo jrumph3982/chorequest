@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { SidebarNav } from '@/components/admin/sidebar-nav'
 import LogoutButton from '@/components/logout-button'
+import { FeedbackButton } from '@/components/FeedbackButton'
 
 interface Props {
   parentName: string
@@ -71,9 +72,17 @@ export function AdminShell({
         </div>
 
         {/* Sidebar footer */}
-        <div className="p-4 border-t border-[#1e2d45] flex items-center justify-between">
-          <span className="text-[10px] text-slate-600 font-mono">ChoreQuest v1</span>
-          <LogoutButton />
+        <div className="p-4 border-t border-[#1e2d45] space-y-2">
+          <a
+            href="/support"
+            className="flex items-center gap-2 text-[15px] text-slate-400 hover:text-[#f29d26] transition-colors font-semibold"
+          >
+            <span>🍺</span> Buy Me a Drink
+          </a>
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-slate-600 font-mono">ChoreQuest v1</span>
+            <LogoutButton />
+          </div>
         </div>
       </aside>
 
@@ -111,6 +120,7 @@ export function AdminShell({
           <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">{children}</div>
         </main>
       </div>
+      <FeedbackButton />
     </div>
   )
 }

@@ -44,6 +44,7 @@ export function OnboardingWizard({ householdCode, householdName, existingChildre
   const [children, setChildren] = useState(existingChildren)
   const [newChildName, setNewChildName] = useState('')
   const [newChildPin, setNewChildPin] = useState('')
+  const [newChildGender, setNewChildGender] = useState<'boy' | 'girl' | ''>('')
   const [selectedChores, setSelectedChores] = useState(STARTER_CHORES.map(() => true))
   const [allowanceEnabled, setAllowanceEnabled] = useState(false)
   const [pointsPerDollar, setPointsPerDollar] = useState(100)
@@ -63,13 +64,20 @@ export function OnboardingWizard({ householdCode, householdName, existingChildre
     const res = await fetch('/api/admin/children', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newChildName.trim(), pin: newChildPin }),
+      body: JSON.stringify({
+        name: newChildName.trim(),
+        pin: newChildPin,
+        confirmPin: newChildPin,
+        gender: newChildGender || undefined,
+        hairStyle: newChildGender === 'girl' ? 'Long' : newChildGender === 'boy' ? 'Short' : undefined,
+      }),
     })
     if (res.ok) {
       const data = await res.json()
       setChildren((prev) => [...prev, { id: data.id, name: data.name }])
       setNewChildName('')
       setNewChildPin('')
+      setNewChildGender('')
     } else {
       const d = await res.json()
       setError(d.error ?? 'Failed to add child')
@@ -110,7 +118,7 @@ export function OnboardingWizard({ householdCode, householdName, existingChildre
   async function completeOnboarding() {
     setLoading(true)
     await fetch('/api/admin/onboarding/complete', { method: 'POST' })
-    router.push('/admin/dashboard')
+    router.push('/admin')
     router.refresh()
   }
 
@@ -282,6 +290,26 @@ export function OnboardingWizard({ householdCode, householdName, existingChildre
             )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+              {/* Gender selector */}
+              <div style={{ display: 'flex', gap: 8 }}>
+                {(['boy', 'girl'] as const).map((g) => (
+                  <button
+                    key={g}
+                    type="button"
+                    onClick={() => setNewChildGender(newChildGender === g ? '' : g)}
+                    style={{
+                      flex: 1, padding: '10px 0', borderRadius: 8, cursor: 'pointer',
+                      fontFamily: "'Bungee', sans-serif", fontSize: 12, letterSpacing: 1,
+                      textTransform: 'uppercase' as const,
+                      background: newChildGender === g ? 'rgba(61,255,122,0.1)' : '#0d1810',
+                      border: `1px solid ${newChildGender === g ? '#3dff7a' : '#1a3018'}`,
+                      color: newChildGender === g ? '#3dff7a' : '#4a7a40',
+                    }}
+                  >
+                    {g === 'boy' ? '🧒 Boy' : '👧 Girl'}
+                  </button>
+                ))}
+              </div>
               <input
                 style={inputStyle}
                 placeholder="Child's name"

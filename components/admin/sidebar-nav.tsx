@@ -37,6 +37,7 @@ export function SidebarNav({ pendingApprovals, pendingBonus }: Props) {
     { type: 'link', href: '/admin/weekly-review', label: 'Weekly Review', icon: '📅' },
     { type: 'link', href: '/admin/allowance', label: 'Allowance', icon: '💰' },
     { type: 'link', href: '/admin/leaderboard', label: 'Leaderboard', icon: '🏆' },
+    { type: 'link', href: '/admin/global-leaderboard', label: 'Global Leaderboard', icon: '🌐' },
     { type: 'divider' },
     { type: 'link', href: '/admin/events', label: 'Events', icon: '🌍' },
     { type: 'link', href: '/admin/security', label: 'Security', icon: '🔒' },

@@ -15,6 +15,7 @@ export type SurvivalSettings = {
   rewardDropRate: string
   allowancePointsPerDollar: number
   weeklyAllowanceCap: number | null
+  startingAllowanceBalanceCents: number
 }
 
 export const DIFFICULTY_MULTIPLIER: Record<string, number> = {

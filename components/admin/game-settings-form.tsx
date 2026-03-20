@@ -112,7 +112,6 @@ export function GameSettingsForm({ initial }: Props) {
   const [allowancePointsPerDollar, setAllowancePointsPerDollar] = useState(
     initial.allowancePointsPerDollar ?? 100,
   )
-
   const [saving, setSaving] = useState(false)
   const [saved,  setSaved]  = useState(false)
   const [error,  setError]  = useState('')
@@ -224,6 +223,7 @@ export function GameSettingsForm({ initial }: Props) {
               Higher numbers make allowance harder to earn.
             </p>
           </div>
+
         </div>
       </section>
 
